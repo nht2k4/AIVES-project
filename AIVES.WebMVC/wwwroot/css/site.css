@@ -1,0 +1,43 @@
+:root {
+    --ev-ink: #1d2a3a;
+    --ev-accent: #1f6f8b;
+}
+
+body {
+    color: var(--ev-ink);
+    background: #f6f8fa;
+}
+
+.navbar {
+    background: var(--ev-ink) !important;
+}
+
+.btn-primary {
+    background: var(--ev-accent);
+    border-color: var(--ev-accent);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background: #185a72;
+    border-color: #185a72;
+}
+
+.table > :not(caption) > * > * {
+    vertical-align: middle;
+}
+
+.lang-pill {
+    display: inline-block;
+    padding: .15rem .55rem;
+    border-radius: 999px;
+    background: #e3eff4;
+    color: var(--ev-accent);
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+:focus-visible {
+    outline: 3px solid #7fb8cc;
+    outline-offset: 2px;
+}
