@@ -1,0 +1,97 @@
+@model SubjectDetailsViewModel
+@{
+    var s = Model.Detail.Subject;
+    ViewData["Title"] = s.Code;
+    var lecturerOptions = Model.Detail.AvailableLecturers
+        .Select(l => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem($"{l.FullName} ({l.Email})", l.Id.ToString()))
+        .ToList();
+}
+<a asp-action="Index" class="small">Quay lại danh sách môn học</a>
+<div class="mt-2 mb-4">
+    <h1 class="h3 mb-1">@s.Code: @s.Name</h1>
+    @if (!s.IsActive)
+    {
+        <span class="badge text-bg-secondary">Môn đã ngừng hoạt động</span>
+    }
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-semibold">Giảng viên được phân công (@Model.Detail.AssignedLecturers.Count)</div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Họ tên</th>
+                            <th>Email</th>
+                            <th>Ngày phân công</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Detail.AssignedLecturers.Count == 0)
+                        {
+                            <tr><td colspan="4" class="text-center text-muted py-4">Chưa có giảng viên nào. Chọn giảng viên ở khung bên phải để phân công.</td></tr>
+                        }
+                        @foreach (var l in Model.Detail.AssignedLecturers)
+                        {
+                            <tr>
+                                <td>
+                                    @l.FullName
+                                    @if (!l.IsActive)
+                                    {
+                                        <span class="badge text-bg-secondary ms-1">Đã khóa</span>
+                                    }
+                                </td>
+                                <td>@l.Email</td>
+                                <td>@l.AssignedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="text-end">
+                                    <form asp-action="Unassign" method="post" class="d-inline">
+                                        <input type="hidden" name="subjectId" value="@s.Id" />
+                                        <input type="hidden" name="lecturerId" value="@l.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Gỡ phân công</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-semibold">Phân công giảng viên</div>
+            <div class="card-body">
+                <form asp-action="Assign" method="post">
+                    <input type="hidden" asp-for="Assign.SubjectId" />
+                    <label asp-for="Assign.LecturerId" class="form-label small"></label>
+                    <select asp-for="Assign.LecturerId" asp-items="lecturerOptions" class="form-select mb-1">
+                        <option value="">Chọn giảng viên</option>
+                    </select>
+                    <span asp-validation-for="Assign.LecturerId" class="text-danger small d-block mb-2"></span>
+                    <button type="submit" class="btn btn-primary w-100 mt-2">Phân công</button>
+                </form>
+                @if (lecturerOptions.Count == 0)
+                {
+                    <p class="small text-muted mt-3 mb-0">Mọi giảng viên đang hoạt động đều đã được phân công môn này.</p>
+                }
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-semibold">Ngôn ngữ STT/TTS</div>
+            <div class="card-body">
+                <p class="mb-1 small">Nhận dạng giọng nói: <span class="lang-pill">@s.SttLanguage.GetDisplayName()</span></p>
+                <p class="mb-3 small">Đọc văn bản: <span class="lang-pill">@s.TtsLanguage.GetDisplayName()</span></p>
+                <a asp-controller="Language" asp-action="Edit" asp-route-subjectId="@s.Id" class="btn btn-outline-primary w-100">Đổi ngôn ngữ</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
