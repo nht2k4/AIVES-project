@@ -1,0 +1,75 @@
+@model AccountListViewModel
+@{
+    ViewData["Title"] = "Tài khoản";
+}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h3 m-0">Quản lý tài khoản</h1>
+    <a asp-action="Create" class="btn btn-primary">Tạo tài khoản</a>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-6">
+        <input name="keyword" value="@Model.Keyword" class="form-control" placeholder="Tìm theo họ tên hoặc email" aria-label="Từ khóa" />
+    </div>
+    <div class="col-md-3">
+        <select asp-for="Role" asp-items="Html.GetEnumSelectList<AppRole>()" class="form-select" aria-label="Vai trò">
+            <option value="">Tất cả vai trò</option>
+        </select>
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-outline-primary flex-fill">Lọc</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Xóa lọc</a>
+    </div>
+</form>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Họ tên</th>
+                    <th>Email</th>
+                    <th>Vai trò</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày tạo</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Accounts.Count == 0)
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">Không có tài khoản nào khớp bộ lọc.</td></tr>
+                }
+                @foreach (var a in Model.Accounts)
+                {
+                    <tr>
+                        <td>@a.FullName</td>
+                        <td>@a.Email</td>
+                        <td>@a.Role.GetDisplayName()</td>
+                        <td>
+                            @if (a.IsActive)
+                            {
+                                <span class="badge text-bg-success">Đang hoạt động</span>
+                            }
+                            else
+                            {
+                                <span class="badge text-bg-secondary">Đã khóa</span>
+                            }
+                        </td>
+                        <td>@a.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                        <td class="text-end text-nowrap">
+                            <a asp-action="Edit" asp-route-id="@a.Id" class="btn btn-sm btn-outline-primary">Sửa</a>
+                            <form asp-action="SetActive" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@a.Id" />
+                                <input type="hidden" name="isActive" value="@(a.IsActive ? "false" : "true")" />
+                                <button type="submit" class="btn btn-sm @(a.IsActive ? "btn-outline-danger" : "btn-outline-success")">
+                                    @(a.IsActive ? "Khóa" : "Mở khóa")
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
