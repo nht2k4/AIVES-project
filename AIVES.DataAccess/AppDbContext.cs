@@ -16,7 +16,15 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Account> Accounts { get; set; }
 
+    public virtual DbSet<ExamParticipant> ExamParticipants { get; set; }
+
+    public virtual DbSet<ExamSession> ExamSessions { get; set; }
+
     public virtual DbSet<LecturerSubject> LecturerSubjects { get; set; }
+
+    public virtual DbSet<ParticipantQuestion> ParticipantQuestions { get; set; }
+
+    public virtual DbSet<Question> Questions { get; set; }
 
     public virtual DbSet<Subject> Subjects { get; set; }
 
@@ -39,6 +47,42 @@ public partial class AppDbContext : DbContext
                 .IsUnicode(false);
         });
 
+        modelBuilder.Entity<ExamParticipant>(entity =>
+        {
+            entity.HasIndex(e => new { e.SessionId, e.StudentCode }, "UQ_ExamParticipants_Student").IsUnique();
+
+            entity.Property(e => e.FullName).HasMaxLength(100);
+            entity.Property(e => e.Status)
+                .HasMaxLength(15)
+                .IsUnicode(false);
+            entity.Property(e => e.StudentCode)
+                .HasMaxLength(30)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.Session).WithMany(p => p.ExamParticipants)
+                .HasForeignKey(d => d.SessionId)
+                .HasConstraintName("FK_ExamParticipants_Sessions");
+        });
+
+        modelBuilder.Entity<ExamSession>(entity =>
+        {
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.Status)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.Title).HasMaxLength(150);
+
+            entity.HasOne(d => d.CreatedByNavigation).WithMany()
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ExamSessions_Accounts");
+
+            entity.HasOne(d => d.Subject).WithMany()
+                .HasForeignKey(d => d.SubjectId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ExamSessions_Subjects");
+        });
+
         modelBuilder.Entity<LecturerSubject>(entity =>
         {
             entity.HasKey(e => new { e.LecturerId, e.SubjectId });
@@ -52,6 +96,31 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Subject).WithMany(p => p.LecturerSubjects)
                 .HasForeignKey(d => d.SubjectId)
                 .HasConstraintName("FK_LecturerSubjects_Subjects");
+        });
+
+        modelBuilder.Entity<ParticipantQuestion>(entity =>
+        {
+            entity.HasKey(e => new { e.ParticipantId, e.QuestionId });
+
+            entity.HasOne(d => d.Participant).WithMany(p => p.ParticipantQuestions)
+                .HasForeignKey(d => d.ParticipantId)
+                .HasConstraintName("FK_ParticipantQuestions_Participants");
+
+            entity.HasOne(d => d.Question).WithMany()
+                .HasForeignKey(d => d.QuestionId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ParticipantQuestions_Questions");
+        });
+
+        modelBuilder.Entity<Question>(entity =>
+        {
+            entity.Property(e => e.Content).HasMaxLength(1000);
+            entity.Property(e => e.ExpectedPoints).HasMaxLength(1000);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+
+            entity.HasOne(d => d.Subject).WithMany()
+                .HasForeignKey(d => d.SubjectId)
+                .HasConstraintName("FK_Questions_Subjects");
         });
 
         modelBuilder.Entity<Subject>(entity =>
