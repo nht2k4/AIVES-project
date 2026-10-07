@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Khóa AI (DeepSeek) lưu bằng user-secrets, xem README -->
+    <UserSecretsId>aives-webrazor</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Presentation CHỈ tham chiếu Business -->
+    <ProjectReference Include="..\AIVES.Business\AIVES.Business.csproj" />
+  </ItemGroup>
+
+</Project>

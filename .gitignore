@@ -16,3 +16,7 @@ obj/
 publish/
 Thumbs.db
 .DS_Store
+
+# VieNeu-TTS: giữ mã nguồn, bỏ môi trường Python
+VieNeu-TTS/.venv/
+VieNeu-TTS/**/__pycache__/

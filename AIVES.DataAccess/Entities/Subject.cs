@@ -22,5 +22,7 @@ public partial class Subject
 
     public string? LanguageUpdatedBy { get; set; }
 
+    public string? TtsVoice { get; set; }
+
     public virtual ICollection<LecturerSubject> LecturerSubjects { get; set; } = new List<LecturerSubject>();
 }

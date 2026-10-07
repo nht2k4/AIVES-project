@@ -1,0 +1,527 @@
+# ====================================================================================================
+# Bộ lời gọi API của Ass3 (chức năng 7, 2 và 3). Mở file này trong Visual Studio 2022 (17.8 trở lên) hoặc VS Code
+# với tiện ích "REST Client". Bấm "Send Request" (hoặc "Gửi") trên từng khối, TỪ TRÊN XUỐNG DƯỚI.
+# Cookie đăng nhập được giữ lại giữa các lời gọi trong cùng một file.
+#
+# Điều kiện: chạy AIVES.Ass3.MVC, database mới tạo từ script (sau script 03), chưa có phiên thi nào.
+# Các mã (id) bên dưới giả định database mới: tài khoản 1 = admin, 2 = an.nv, 3 = binh.tt, 4 = moi.dangky (Pending), 5 = sv.a;
+# môn 1 = PRN222, 2 = SWP391, 3 = ENW492c, 4 = SSG104, 5 = PRN211 (đã ngừng).
+# Nếu id của bạn khác thì sửa số cho đúng. Mỗi khối ghi "KẾT QUẢ MONG ĐỢI": nếu không khớp là có lỗi cần xem.
+# Ngày giờ bắt đầu phiên thi phải ở TƯƠNG LAI: nếu đã quá 2035 thì đổi năm.
+# ====================================================================================================
+
+@host = https://localhost:7082
+
+### 0.1 Chưa đăng nhập gọi API cần quyền
+# KẾT QUẢ MONG ĐỢI: 401, thân rỗng. KHÔNG được là trang HTML chuyển hướng (302).
+GET {{host}}/api/exams
+
+### 0.2 Swagger có đủ API không
+# KẾT QUẢ MONG ĐỢI: 200, JSON liệt kê các đường dẫn /api/...
+GET {{host}}/swagger/v1/swagger.json
+
+
+# ====================================================================================================
+# 1. ĐĂNG NHẬP (TV4)
+# ====================================================================================================
+
+### 1.1 Đăng nhập sai mật khẩu
+# KẾT QUẢ MONG ĐỢI: 401, {"error":"Email hoặc mật khẩu không đúng."}
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@fu.edu.vn", "password": "sai-mat-khau" }
+
+### 1.2 Đăng nhập email không tồn tại
+# KẾT QUẢ MONG ĐỢI: 401, CÙNG thông báo với 1.1 (không để lộ email nào tồn tại)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "khong-co@fu.edu.vn", "password": "Admin@123" }
+
+### 1.3 Đăng nhập đúng (ADMIN)
+# KẾT QUẢ MONG ĐỢI: 200, {"id":1,"fullName":"Quản trị hệ thống","email":"admin@fu.edu.vn","role":"Admin"} (role viết bằng CHỮ)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@fu.edu.vn", "password": "Admin@123" }
+
+### 1.4 Tôi là ai
+# KẾT QUẢ MONG ĐỢI: 200, thông tin admin
+GET {{host}}/api/auth/me
+
+
+# ====================================================================================================
+# 2. TÀI KHOẢN (TV4), đang đăng nhập bằng admin
+# ====================================================================================================
+
+### 2.1 Danh sách giảng viên
+# KẾT QUẢ MONG ĐỢI: 200, mảng có an.nv và binh.tt; mỗi phần tử có id, fullName, email, role, isActive, createdAt, studentCode
+GET {{host}}/api/accounts?role=Lecturer
+
+### 2.2 Tìm theo từ khóa
+# KẾT QUẢ MONG ĐỢI: 200, chỉ tài khoản có "an" trong họ tên hoặc email
+GET {{host}}/api/accounts?keyword=an
+
+### 2.3 Chi tiết, và id không tồn tại
+# KẾT QUẢ MONG ĐỢI: 200 với tài khoản 2; ở khối kế: 404 {"error":"Không tìm thấy tài khoản."}
+GET {{host}}/api/accounts/2
+
+###
+GET {{host}}/api/accounts/999
+
+### 2.4 Tạo tài khoản sinh viên
+# KẾT QUẢ MONG ĐỢI: 201, {"id":6} (id có thể khác)
+POST {{host}}/api/accounts
+Content-Type: application/json
+
+{ "fullName": "Sinh Viên B", "email": "sv.b@fu.edu.vn", "password": "Student@123", "role": "Student", "studentCode": "SE180002" }
+
+### 2.5 Tạo trùng mã sinh viên
+# KẾT QUẢ MONG ĐỢI: 400, {"error":"Mã sinh viên SE180002 đã được dùng cho tài khoản khác."}
+POST {{host}}/api/accounts
+Content-Type: application/json
+
+{ "fullName": "Sinh Viên C", "email": "sv.c@fu.edu.vn", "password": "Student@123", "role": "Student", "studentCode": "SE180002" }
+
+### 2.6 Sinh viên thiếu mã
+# KẾT QUẢ MONG ĐỢI: 400, thông báo sinh viên phải có mã
+POST {{host}}/api/accounts
+Content-Type: application/json
+
+{ "fullName": "Sinh Viên D", "email": "sv.d@fu.edu.vn", "password": "Student@123", "role": "Student" }
+
+### 2.7 Mật khẩu quá ngắn
+# KẾT QUẢ MONG ĐỢI: 400
+POST {{host}}/api/accounts
+Content-Type: application/json
+
+{ "fullName": "GV Mới", "email": "gv.moi@fu.edu.vn", "password": "123", "role": "Lecturer" }
+
+### 2.8 Khóa chính mình
+# KẾT QUẢ MONG ĐỢI: 400 (không thể tự khóa tài khoản của chính mình)
+PATCH {{host}}/api/accounts/1/active
+Content-Type: application/json
+
+{ "isActive": false }
+
+### 2.9 Khóa rồi mở khóa tài khoản khác
+# KẾT QUẢ MONG ĐỢI: hai lời gọi liên tiếp đều 204
+PATCH {{host}}/api/accounts/3/active
+Content-Type: application/json
+
+{ "isActive": false }
+
+###
+PATCH {{host}}/api/accounts/3/active
+Content-Type: application/json
+
+{ "isActive": true }
+
+### 2.10 Đặt lại mật khẩu
+# KẾT QUẢ MONG ĐỢI: 204. Khối kế (mật khẩu < 6 ký tự): 400
+POST {{host}}/api/accounts/3/reset-password
+Content-Type: application/json
+
+{ "newPassword": "Lecturer@123" }
+
+###
+POST {{host}}/api/accounts/3/reset-password
+Content-Type: application/json
+
+{ "newPassword": "123" }
+
+
+# ====================================================================================================
+# 3. MÔN HỌC, PHÂN CÔNG, NGÔN NGỮ (TV5), đang đăng nhập bằng admin
+# ====================================================================================================
+
+### 3.1 Danh sách môn (admin thấy tất cả 5 môn)
+# KẾT QUẢ MONG ĐỢI: 200, mảng 5 môn; mỗi môn có code, name, isActive, sttLanguage, ttsLanguage, lecturerCount (ngôn ngữ viết bằng chữ)
+GET {{host}}/api/subjects
+
+### 3.2 Chi tiết môn: giảng viên đã phân công + giảng viên có thể chọn
+# KẾT QUẢ MONG ĐỢI: 200
+GET {{host}}/api/subjects/2
+
+### 3.3 Phân công giảng viên 3 vào môn 2
+# KẾT QUẢ MONG ĐỢI: 204. Gọi lần hai: 400 (đã được phân công)
+POST {{host}}/api/subjects/2/lecturers
+Content-Type: application/json
+
+{ "lecturerId": 3 }
+
+### 3.4 Phân công vào môn đã ngừng (PRN211 = môn 5)
+# KẾT QUẢ MONG ĐỢI: 400 (môn đã ngừng hoạt động)
+POST {{host}}/api/subjects/5/lecturers
+Content-Type: application/json
+
+{ "lecturerId": 3 }
+
+### 3.5 Phân công người KHÔNG phải giảng viên (admin = tài khoản 1)
+# KẾT QUẢ MONG ĐỢI: 400 (chỉ phân công được tài khoản Giảng viên)
+POST {{host}}/api/subjects/2/lecturers
+Content-Type: application/json
+
+{ "lecturerId": 1 }
+
+### 3.6 Gỡ phân công
+# KẾT QUẢ MONG ĐỢI: 204. Gọi lần hai: 404
+DELETE {{host}}/api/subjects/2/lecturers/3
+
+### 3.7 Xem ngôn ngữ của môn
+# KẾT QUẢ MONG ĐỢI: 200 có trường ttsVoice (null nếu chưa chọn)
+GET {{host}}/api/subjects/1/language
+
+### 3.8 Đổi ngôn ngữ môn ENW492c (3) sang TTS tiếng Anh, chọn giọng
+# KẾT QUẢ MONG ĐỢI: 204; xem lại bằng GET thấy đổi
+PUT {{host}}/api/subjects/3/language
+Content-Type: application/json
+
+{ "sttLanguage": "English", "ttsLanguage": "English", "ttsVoice": "Mai Anh" }
+
+### 3.9 Đổi ngôn ngữ nhưng KHÔNG gửi ttsVoice
+# KẾT QUẢ MONG ĐỢI: 204 và giọng "Mai Anh" vẫn còn (null = giữ nguyên)
+PUT {{host}}/api/subjects/3/language
+Content-Type: application/json
+
+{ "sttLanguage": "English", "ttsLanguage": "English" }
+
+###
+GET {{host}}/api/subjects/3/speech
+
+
+# ====================================================================================================
+# 4. GIẢNG VIÊN: quyền theo môn (TV5), đăng nhập an.nv (chỉ được phân công PRN222 = môn 1)
+# ====================================================================================================
+
+### 4.1 Đăng nhập giảng viên (đăng nhập mới sẽ thay cookie admin)
+# KẾT QUẢ MONG ĐỢI: 200, role = Lecturer
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "an.nv@fu.edu.vn", "password": "Lecturer@123" }
+
+### 4.2 Giảng viên gọi API của admin
+# KẾT QUẢ MONG ĐỢI: 403
+GET {{host}}/api/accounts
+
+### 4.3 Giảng viên chỉ thấy môn của mình
+# KẾT QUẢ MONG ĐỢI: 200, mảng chỉ có PRN222
+GET {{host}}/api/subjects
+
+### 4.4 Giảng viên đổi ngôn ngữ môn KHÔNG được phân công (SWP391 = môn 2)
+# KẾT QUẢ MONG ĐỢI: 403, {"error":"Bạn chưa được phân công môn học này."}   (ĐIỂM NHẤN: quyền do tầng Business quyết định)
+PUT {{host}}/api/subjects/2/language
+Content-Type: application/json
+
+{ "sttLanguage": "English", "ttsLanguage": "English" }
+
+### 4.5 Giảng viên đổi ngôn ngữ môn của mình
+# KẾT QUẢ MONG ĐỢI: 204
+PUT {{host}}/api/subjects/1/language
+Content-Type: application/json
+
+{ "sttLanguage": "Vietnamese", "ttsLanguage": "Vietnamese" }
+
+
+# ====================================================================================================
+# 5. CÂU HỎI VÀ PHIÊN THI (TV5), đang đăng nhập bằng an.nv
+# ====================================================================================================
+
+### 5.1 Ngân hàng câu hỏi của môn 1 (có cả câu đã tắt)
+# KẾT QUẢ MONG ĐỢI: 200, ít nhất 8 câu (dữ liệu mẫu của Tien)
+GET {{host}}/api/subjects/1/questions
+
+### 5.2 Thêm câu hỏi
+# KẾT QUẢ MONG ĐỢI: 201. Khối kế (nội dung rỗng): 400
+POST {{host}}/api/subjects/1/questions
+Content-Type: application/json
+
+{ "content": "Swagger dùng để làm gì?", "expectedPoints": "OpenAPI;tài liệu API;thử API" }
+
+###
+POST {{host}}/api/subjects/1/questions
+Content-Type: application/json
+
+{ "content": "   " }
+
+### 5.3 Thêm câu hỏi vào môn không được phân công
+# KẾT QUẢ MONG ĐỢI: 403
+POST {{host}}/api/subjects/2/questions
+Content-Type: application/json
+
+{ "content": "Câu hỏi lén" }
+
+### 5.4 Môn được phép tạo phiên thi
+# KẾT QUẢ MONG ĐỢI: 200, chỉ có PRN222
+GET {{host}}/api/exams/subjects
+
+### 5.5 Tạo phiên thi
+# KẾT QUẢ MONG ĐỢI: 201, {"id":1}
+POST {{host}}/api/exams
+Content-Type: application/json
+
+{
+  "subjectId": 1,
+  "title": "Vấn đáp giữa kỳ PRN222",
+  "startTime": "2035-01-01T08:00:00",
+  "slotMinutes": 10,
+  "mainQuestionCount": 3,
+  "maxFollowUps": 4,
+  "maxFollowUpsPerQuestion": 2,
+  "answerSeconds": 60,
+  "studentList": "SE180001; Nguyễn Văn A\nSE180002; Sinh Viên B\nSE180003; Lê Thị C"
+}
+
+### 5.6 Tạo phiên thi với ngày ở quá khứ
+# KẾT QUẢ MONG ĐỢI: 400, {"error":"Thời điểm bắt đầu không được nằm trong quá khứ."}
+POST {{host}}/api/exams
+Content-Type: application/json
+
+{
+  "subjectId": 1, "title": "Sai ngày", "startTime": "2020-01-01T08:00:00", "slotMinutes": 10,
+  "mainQuestionCount": 3, "maxFollowUps": 4, "maxFollowUpsPerQuestion": 2, "answerSeconds": 60,
+  "studentList": "SE1; A"
+}
+
+### 5.7 Số ngoài khoảng (số lượt hỏi xoáy mỗi câu = 9)
+# KẾT QUẢ MONG ĐỢI: 400
+POST {{host}}/api/exams
+Content-Type: application/json
+
+{
+  "subjectId": 1, "title": "Sai số", "startTime": "2035-01-01T08:00:00", "slotMinutes": 10,
+  "mainQuestionCount": 3, "maxFollowUps": 4, "maxFollowUpsPerQuestion": 9, "answerSeconds": 60,
+  "studentList": "SE1; A"
+}
+
+### 5.8 Danh sách sinh viên có dòng sai (thiếu họ tên)
+# KẾT QUẢ MONG ĐỢI: 400, thông báo dòng 2 không hợp lệ
+POST {{host}}/api/exams
+Content-Type: application/json
+
+{
+  "subjectId": 1, "title": "Sai dòng", "startTime": "2035-01-01T08:00:00", "slotMinutes": 10,
+  "mainQuestionCount": 3, "maxFollowUps": 4, "maxFollowUpsPerQuestion": 2, "answerSeconds": 60,
+  "studentList": "SE1; A\nSE2"
+}
+
+### 5.9 Tạo phiên thi cho môn không được phân công
+# KẾT QUẢ MONG ĐỢI: 403
+POST {{host}}/api/exams
+Content-Type: application/json
+
+{
+  "subjectId": 2, "title": "Lén", "startTime": "2035-01-01T08:00:00", "slotMinutes": 10,
+  "mainQuestionCount": 1, "maxFollowUps": 0, "maxFollowUpsPerQuestion": 0, "answerSeconds": 60,
+  "studentList": "SE1; A"
+}
+
+### 5.10 Danh sách và chi tiết phiên thi
+# KẾT QUẢ MONG ĐỢI: 200. Chi tiết: 3 thí sinh, khung giờ liên tiếp (8:00, 8:10, 8:20), mỗi người 3 câu,
+# HAI THÍ SINH LIỀN NHAU KHÔNG CÓ CÂU HỎI CHUNG.
+GET {{host}}/api/exams
+
+###
+GET {{host}}/api/exams/1
+
+### 5.11 Đóng rồi mở lại phiên thi
+# KẾT QUẢ MONG ĐỢI: 204 cho cả hai
+PATCH {{host}}/api/exams/1/status
+Content-Type: application/json
+
+{ "open": false }
+
+###
+PATCH {{host}}/api/exams/1/status
+Content-Type: application/json
+
+{ "open": true }
+
+### 5.12 Chọn lại bộ câu hỏi
+# KẾT QUẢ MONG ĐỢI: 204; xem lại 5.10 vẫn mỗi người 3 câu và hai người liền nhau không trùng
+POST {{host}}/api/exams/1/reallocate
+
+### 5.13 Giảng viên khác (binh.tt) không đọc được phiên thi của môn không phải của mình
+# KẾT QUẢ MONG ĐỢI: đăng nhập binh.tt rồi GET /api/exams/1 → 403
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "binh.tt@fu.edu.vn", "password": "Lecturer@123" }
+
+###
+GET {{host}}/api/exams/1
+
+
+# ====================================================================================================
+# 6. SINH VIÊN: không được dùng API của nhân sự (đăng nhập sv.a)
+# ====================================================================================================
+
+### 6.1 Đăng nhập sinh viên
+# KẾT QUẢ MONG ĐỢI: 200, role = Student
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "sv.a@fu.edu.vn", "password": "Student@123" }
+
+### 6.2 Sinh viên gọi API phiên thi và môn học
+# KẾT QUẢ MONG ĐỢI: cả hai đều 403
+GET {{host}}/api/exams
+
+###
+GET {{host}}/api/subjects
+
+
+# ====================================================================================================
+# 7. TỰ ĐĂNG KÝ, ADMIN CẤP VAI TRÒ (TV4)
+# ====================================================================================================
+
+### 7.1 Đăng xuất để thành người chưa đăng nhập
+# KẾT QUẢ MONG ĐỢI: 204
+POST {{host}}/api/auth/logout
+
+### 7.2 Tự đăng ký
+# KẾT QUẢ MONG ĐỢI: 201, {"id":...}. Trang Tài khoản của admin đang mở tự hiện dòng mới (SignalR).
+# @name reg
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "fullName": "Lê Thị C", "email": "le.c@fu.edu.vn", "password": "Student@123" }
+
+### 7.3 Đăng ký trùng email (khác hoa thường)
+# KẾT QUẢ MONG ĐỢI: 400, email đã được dùng
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "fullName": "Trùng", "email": "LE.C@fu.edu.vn", "password": "Student@123" }
+
+### 7.4 Đăng nhập khi chưa được cấp vai trò
+# KẾT QUẢ MONG ĐỢI: 401, {"error":"Tài khoản đang chờ quản trị viên cấp vai trò..."}
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "le.c@fu.edu.vn", "password": "Student@123" }
+
+### 7.5 Admin xem các tài khoản chờ cấp quyền
+# KẾT QUẢ MONG ĐỢI: đăng nhập 200; danh sách có moi.dangky và le.c, role = "Pending"
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@fu.edu.vn", "password": "Admin@123" }
+
+###
+GET {{host}}/api/accounts?role=Pending
+
+### 7.6 Cấp vai trò Sinh viên nhưng thiếu mã sinh viên
+# KẾT QUẢ MONG ĐỢI: 400, {"error":"Sinh viên phải có mã sinh viên."}
+PUT {{host}}/api/accounts/{{reg.response.body.id}}
+Content-Type: application/json
+
+{ "fullName": "Lê Thị C", "email": "le.c@fu.edu.vn", "role": "Student" }
+
+### 7.7 Cấp vai trò Sinh viên với MSSV SE180003 (có trong phiên thi 1)
+# KẾT QUẢ MONG ĐỢI: 204
+PUT {{host}}/api/accounts/{{reg.response.body.id}}
+Content-Type: application/json
+
+{ "fullName": "Lê Thị C", "email": "le.c@fu.edu.vn", "role": "Student", "studentCode": "SE180003" }
+
+### 7.8 Giờ đăng nhập được
+# KẾT QUẢ MONG ĐỢI: 200, role = Student
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "le.c@fu.edu.vn", "password": "Student@123" }
+
+
+# ====================================================================================================
+# 8. CHỨC NĂNG 3: PHỎNG VẤN AI VÀ CÂU HỎI XOÁY QUA API (TV6)
+# Phiên thi 1 (mục 5.5): 3 câu chính, tối đa 2 lượt hỏi xoáy mỗi câu, 4 lượt mỗi thí sinh, 60 giây mỗi câu.
+# Thí sinh: 1 = SE180001 (sv.a), 2 = SE180002 (sv.b, tạo ở 2.4), 3 = SE180003 (le.c).
+# Không đặt khóa Ai:ApiKey thì AI dùng luật dự phòng: câu trả lời dưới 12 từ chắc chắn bị hỏi xoáy.
+# Có khóa DeepSeek thì AI tự quyết định, kết quả 8.4, 8.5 có thể khác (thường vẫn hỏi xoáy vì câu trả lời quá mơ hồ).
+# ====================================================================================================
+
+### 8.1 Sinh viên sv.b đăng nhập, xem bài thi của mình
+# KẾT QUẢ MONG ĐỢI: 200 rồi 200, một phần tử: phiên "Vấn đáp giữa kỳ PRN222", status Scheduled, sessionOpen true
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "sv.b@fu.edu.vn", "password": "Student@123" }
+
+###
+GET {{host}}/api/interviews/my
+
+### 8.2 Vào phòng thi của NGƯỜI KHÁC (thí sinh 1)
+# KẾT QUẢ MONG ĐỢI: 403
+POST {{host}}/api/interviews/1/start
+
+### 8.3 Bắt đầu phỏng vấn của mình
+# KẾT QUẢ MONG ĐỢI: 200, kind = "Main", mainIndex 1, mainTotal 3, secondsLeft 60. Trang Chi tiết phiên thi của
+# giảng viên đang mở tự đổi thí sinh sang "Đang thi" (SignalR).
+# @name s1
+POST {{host}}/api/interviews/2/start
+
+### 8.4 Trả lời mơ hồ
+# KẾT QUẢ MONG ĐỢI: 200, kind = "FollowUp", followUpIndex 1, followUpMax 2: CÂU HỎI XOÁY do AI sinh ra
+# @name s2
+POST {{host}}/api/interviews/turns/{{s1.response.body.turnId}}/answer
+Content-Type: application/json
+
+{ "answer": "Cái đó dùng ModelState", "timedOut": false }
+
+### 8.5 Vẫn mơ hồ
+# KẾT QUẢ MONG ĐỢI: 200, kind = "FollowUp", followUpIndex 2
+# @name s3
+POST {{host}}/api/interviews/turns/{{s2.response.body.turnId}}/answer
+Content-Type: application/json
+
+{ "answer": "Thì kiểm tra dữ liệu thôi", "timedOut": false }
+
+### 8.6 Đã đủ 2 lượt hỏi xoáy cho câu này
+# KẾT QUẢ MONG ĐỢI: 200, kind = "Main", mainIndex 2 (sang câu chính kế, KHÔNG có lượt xoáy thứ 3)
+# @name s4
+POST {{host}}/api/interviews/turns/{{s3.response.body.turnId}}/answer
+Content-Type: application/json
+
+{ "answer": "Không biết", "timedOut": false }
+
+### 8.7 Nộp lại câu đã trả lời
+# KẾT QUẢ MONG ĐỢI: 400 (câu trả lời đầu tiên được giữ nguyên)
+POST {{host}}/api/interviews/turns/{{s1.response.body.turnId}}/answer
+Content-Type: application/json
+
+{ "answer": "Nộp lần hai", "timedOut": false }
+
+### 8.8 Bỏ trống, báo hết giờ
+# KẾT QUẢ MONG ĐỢI: 200, kind = "Main", mainIndex 3 (câu trống không bị hỏi xoáy)
+# @name s5
+POST {{host}}/api/interviews/turns/{{s4.response.body.turnId}}/answer
+Content-Type: application/json
+
+{ "answer": "", "timedOut": true }
+
+### 8.9 Giọng đọc câu hỏi đang mở
+# KẾT QUẢ MONG ĐỢI: 200 audio/pcm khi VieNeu-TTS đang chạy; 503 khi chưa chạy
+GET {{host}}/api/interviews/turns/{{s5.response.body.turnId}}/speech
+
+### 8.10 Biên bản của mình, và của người khác
+# KẾT QUẢ MONG ĐỢI: 200 (5 lượt: Main, FollowUp kèm reason, FollowUp, Main, Main; lượt thứ 4 có timedOut true) rồi 403
+GET {{host}}/api/interviews/2/transcript
+
+###
+GET {{host}}/api/interviews/1/transcript
+
+### 8.11 Giảng viên phụ trách môn xem biên bản
+# KẾT QUẢ MONG ĐỢI: 200 rồi 200; "my" chỉ dành cho sinh viên nên 403
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "an.nv@fu.edu.vn", "password": "Lecturer@123" }
+
+###
+GET {{host}}/api/interviews/2/transcript
+
+###
+GET {{host}}/api/interviews/my
