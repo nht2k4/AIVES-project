@@ -9,5 +9,5 @@ public record LanguageConfigDto(
 
 public record UpdateLanguageRequest(int SubjectId, AppLanguage SttLanguage, AppLanguage TtsLanguage);
 
-// "Hợp đồng" cho các nhóm chức năng khác (ghi âm, STT, TTS) dùng
+// "Hợp đồng" cho Chức năng 3 (Lõi phỏng vấn AI): ngôn ngữ STT/TTS của buổi thi theo môn
 public record SpeechConfig(string SubjectCode, string SttLocale, string TtsLocale);
