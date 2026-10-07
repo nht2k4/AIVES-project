@@ -408,6 +408,7 @@ VieNeu-TTS không chạy thì phòng thi đọc bằng giọng trình duyệt v�
 | Giao diện F7 và F2 viết lại bằng **MVC** (`AccountsController` có ô MSSV, `ExamsController` gồm cả ngân hàng câu hỏi); trang `Interview/Index`, `Interview/Session` cũ bỏ, vào phòng thi từ `/Exams/Details/{id}` | TV4 4.2, 4.3; TV6 6.3 |
 | File `ass3.http` trong gói: 78 lời gọi có kết quả mong đợi (thêm mục 7 đăng ký, mục 8 phỏng vấn AI) | mọi người làm API |
 | Database và SignalR của Tien đã có sẵn trong gói | TV2, TV4, TV6 dùng ngay |
+| `VieNeuLauncher` chạy `uv run` (bỏ `--no-sync`) và cảnh báo khi VieNeu tự thoát; lý do: chuyển thư mục làm VieNeu chết ngay mà log không báo gì | TV2 2.5, checklist H |
 
 ## B1. Kế hoạch
 
@@ -471,7 +472,7 @@ TV6 6.1 (Swagger, cookie trả 401/403 cho /api) + TV4 4.4 (ApiControllerBase) �
 **2.2** (1 buổi) `InterviewRepository` (**không lưu ngay**: `AddTurn` chỉ đánh dấu, `SaveAsync` lưu tất cả trong một giao dịch), `VoiceRepository` (`GetAllAsync` **không nạp** cột `Clip`; `RemoveAsync` xóa giọng và đặt `Subjects.TtsVoice = NULL` trong cùng một `SaveChanges`); thêm 2 dòng vào `AddDataAccessLayer`.
 **2.3** (1,5 buổi) cài VieNeu-TTS (`git clone https://github.com/pnnbao97/VieNeu-TTS.git VieNeu-TTS`, `uv run python -m apps.openai_speech`, nghe ở `http://localhost:8000`; thêm `VieNeu-TTS/` vào `.gitignore`) và viết `Services/VieNeuTextToSpeech.cs` theo `ITextToSpeech`: `GET /health`, `GET /v1/voices`, `POST /v1/voices` (multipart, clone), `POST /v1/audio/speech` (PCM s16le 48 kHz, **streaming** bằng `HttpCompletionOption.ResponseHeadersRead`, không `Dispose` response trước khi luồng đọc xong). Mọi hàm **không ném lỗi** khi máy chủ tắt. Một `static HttpClient`.
 **2.4** (2,5 buổi) `Services/VoiceService.cs` (Clone chỉ Admin: tên hợp lệ → mô tả → file ≤ 20 MB, đuôi `.wav .mp3 .flac .ogg .m4a` → tên chưa có → nạp vào VieNeu **trước** → rồi mới lưu DB; Delete; Overview gộp giọng có sẵn + giọng đã clone không trùng; `OpenSpeechAsync` nạp lại giọng clone khi VieNeu quên, rơi về giọng mặc định khi giọng hỏng). Trang **Giọng đọc** `VoicesController` (`Index`, `Preview`, `Clone`, `Delete`, `Assign`) + view.
-**2.5** (1 buổi) `Infrastructure/VieNeuLauncher.cs` (`IHostedService`: VieNeu đang chạy thì dùng lại; không thì tìm thư mục `VieNeu-TTS` ngược lên các thư mục cha và chạy `uv run python -m apps.openai_speech`; thiếu `uv` chỉ cảnh báo log) + `ChildProcessJob.cs` (Windows Job Object `KILL_ON_JOB_CLOSE` để VieNeu chết theo khi ứng dụng bị ép tắt). Cấu hình `Tts` trong `appsettings.json`: `BaseUrl`, `Model`, `Voice`, `AutoStart`, `ServerPath`, `UseGpu`.
+**2.5** (1 buổi) `Infrastructure/VieNeuLauncher.cs` (`IHostedService`: VieNeu đang chạy thì dùng lại; không thì tìm thư mục `VieNeu-TTS` ngược lên các thư mục cha và chạy `uv run python -m apps.openai_speech`; thiếu `uv` chỉ cảnh báo log). **Hai điểm bắt buộc** (rút ra từ lỗi thật khi chạy thử): (a) **không** dùng `uv run --no-sync`: nếu thư mục `VieNeu-TTS` bị chuyển chỗ hoặc đổi máy, gói `vieneu` trong `.venv` vẫn trỏ về đường dẫn cũ và VieNeu chết ngay với `ModuleNotFoundError`; `uv run` tự sửa việc này và gần như tức thì khi môi trường đã đúng; (b) VieNeu **tự thoát** thì ghi `LogWarning` kèm mã thoát và dòng lỗi cuối (đầu ra thường chỉ ghi ở mức Debug nên lỗi bị giấu), trừ khi chính ứng dụng đang tắt + `ChildProcessJob.cs` (Windows Job Object `KILL_ON_JOB_CLOSE` để VieNeu chết theo khi ứng dụng bị ép tắt). Cấu hình `Tts` trong `appsettings.json`: `BaseUrl`, `Model`, `Voice`, `AutoStart`, `ServerPath`, `UseGpu`.
 
 **Mini-task:** thêm `CancellationToken` hạn 10 giây cho `GetStatusAsync` và mô tả cách thử VieNeu "treo". **Câu hỏi bảo vệ:** (1) Vì sao `AddTurn` không lưu ngay? (2) VieNeu khởi động lại và quên giọng clone: code nào giúp vẫn đọc được? (3) Vì sao không `Dispose` `HttpResponseMessage` ngay trong `OpenSpeechAsync`? (4) `GetAllAsync` của giọng vì sao không nạp `Clip`?
 
@@ -658,6 +659,8 @@ Phần gọi mạng (`VieNeuTextToSpeech`, phần DeepSeek của `FollowUpGenera
 - [ ] Giảng viên không thấy form Clone, không xóa được.
 - [ ] Gán giọng clone cho môn → phòng thi môn đó đọc giọng clone; xóa giọng → môn về giọng mặc định.
 - [ ] `taskkill /F /IM AIVES.Ass3.MVC.exe` → vài giây sau `http://localhost:8000/health` không trả lời.
+- [ ] Chuyển thư mục dự án sang chỗ khác (hoặc máy khác) rồi chạy lại → VieNeu vẫn lên được (không bị `ModuleNotFoundError: vieneu`).
+- [ ] Cố tình làm VieNeu lỗi (ví dụ đổi tên thư mục `apps`) → log có **cảnh báo** "VieNeu-TTS đã dừng (mã ...)" kèm dòng lỗi, phòng thi vẫn dùng giọng trình duyệt.
 
 **S3. SignalR (Tien, TV4, TV6)**
 - [ ] Làm lại mục S của Ass2 trên bản MVC.
@@ -678,7 +681,7 @@ Mở `ass3.http` bằng Visual Studio 2022 (17.12 trở lên, hỗ trợ biến 
 | 7 | **tự đăng ký** → chờ cấp quyền → admin cấp vai trò Sinh viên (thiếu MSSV → 400) → đăng nhập được | TV4 |
 | 8 | **phỏng vấn AI**: vào lượt thi người khác → 403; bắt đầu; trả lời mơ hồ → **câu hỏi xoáy 1/2, 2/2**, rồi sang câu chính kế (không có lượt 3); nộp lại → 400; bỏ trống + hết giờ → không hỏi xoáy; giọng đọc 200/503; biên bản của mình 200, của người khác 403; giảng viên xem biên bản 200 | TV6, TV3 |
 
-Đã chạy thử trên bản tham chiếu: cả 78 lời gọi đúng (không có khóa AI nên dùng luật dự phòng; có khóa DeepSeek thì nội dung câu hỏi xoáy ở mục 8 do AI tự viết).
+Đã chạy thử trên bản tham chiếu với **DeepSeek thật và VieNeu-TTS thật**: cả 78 lời gọi đúng. Mục 8.9 trả về luồng `audio/pcm` khoảng 5,6 giây (VieNeu tắt thì 503). Câu hỏi xoáy do DeepSeek viết bám đúng nội dung câu hỏi chính, ví dụ câu chính về Dependency Injection, sinh viên trả lời "Cái đó dùng ModelState" thì AI hỏi *"Bạn có thể giải thích Dependency Injection là gì không? Và trong ASP.NET Core, làm thế nào để đăng ký một service với vòng đời scoped?"* với lý do *"Câu trả lời chưa đúng trọng tâm..."*. Không có khóa AI thì dùng luật dự phòng (câu hỏi mẫu "Bạn có thể giải thích rõ hơn...").
 
 ---
 
