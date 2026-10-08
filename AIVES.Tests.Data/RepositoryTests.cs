@@ -180,6 +180,38 @@ public class SubjectRepositoryTests
         Assert.Equal(("en-US", "Mai Anh"), (reloaded.SttLanguage, reloaded.TtsVoice));
     }
 
+    // Thông số chỉnh tay theo môn: thời gian chờ AI mặc định 8 giây; lưu được giá trị khác.
+    // (UseExternalAi mặc định 1 áp cho các môn có sẵn khi chạy script 03; EF gửi thẳng false khi thêm môn mới nên không kiểm ở đây)
+    [SqlFact]
+    public async Task ManualSpeechSettings_HaveDefaults_AndArePersisted()
+    {
+        var seeded = await Sql.SeedSubjectAsync();
+        var ctx = Sql.NewContext();
+        var repo = new SubjectRepository(ctx);
+        var tracked = (await repo.GetByIdAsync(seeded.Id))!;
+        Assert.Equal((8, null as string), (tracked.AiTimeoutSeconds, tracked.SttTerms));
+
+        tracked.SttTerms = "ra dơ pây => Razor Pages";
+        tracked.AiTimeoutSeconds = 5;
+        tracked.UseExternalAi = false;
+        await repo.UpdateAsync(tracked);
+
+        var reloaded = (await new SubjectRepository(Sql.NewContext()).GetByIdAsync(seeded.Id))!;
+        Assert.Equal(("ra dơ pây => Razor Pages", 5, false), (reloaded.SttTerms, reloaded.AiTimeoutSeconds, reloaded.UseExternalAi));
+    }
+
+    [SqlFact]
+    public async Task AiTimeout_OutsideTwoToThirtySeconds_IsRejectedByTheDatabase()
+    {
+        var seeded = await Sql.SeedSubjectAsync();
+        var ctx = Sql.NewContext();
+        var repo = new SubjectRepository(ctx);
+        var tracked = (await repo.GetByIdAsync(seeded.Id))!;
+        tracked.AiTimeoutSeconds = 31;
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => repo.UpdateAsync(tracked));
+    }
+
     [SqlFact]
     public async Task LanguageColumns_RejectValuesOutsideViAndEn()
     {

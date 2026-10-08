@@ -19,6 +19,20 @@ public class FollowUpGeneratorFallbackTests
         params (string, string)[] earlier) =>
         new("Giải thích DI?", points, locale, earlier.Append(("Giải thích DI?", answer)).ToList());
 
+    [Fact]
+    public async Task ExternalAiNotAllowed_UsesTheRules_EvenWithAKey()
+    {
+        // Có khóa nhưng môn tắt AI bên ngoài: không gọi mạng (khóa giả nên nếu gọi sẽ chậm và lỗi), trả lời ngay bằng luật
+        var withKey = new FollowUpGenerator(new AiOptions { ApiKey = "khoa-gia" });
+        var context = new FollowUpContext("Giải thích DI?", "AddScoped", "vi-VN", new[] { ("Giải thích DI?", "Không biết") }, AllowExternalAi: false);
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var decision = await withKey.DecideAsync(context);
+
+        Assert.True(decision.Ask);
+        Assert.True(watch.ElapsedMilliseconds < 500);
+    }
+
     [Theory]
     [InlineData("Không biết")]
     [InlineData("")]

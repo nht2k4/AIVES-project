@@ -58,6 +58,36 @@ IF COL_LENGTH('Subjects', 'TtsVoice') IS NULL
     ALTER TABLE Subjects ADD TtsVoice NVARCHAR(64) NULL;
 GO
 
+/* =========================================================
+   Thông số STT/AI chỉnh tay theo môn (trang Ngôn ngữ STT/TTS của chức năng 7):
+   - SttTerms: từ điển thuật ngữ, mỗi dòng "cách STT hay nghe sai => cách viết đúng" (độ chính xác STT tiếng Việt cho thuật ngữ chuyên ngành)
+   - AiTimeoutSeconds: thời gian chờ AI tối đa, quá thì dùng luật dự phòng (giữ nhịp vấn đáp)
+   - UseExternalAi: 0 = không gửi câu trả lời của sinh viên ra dịch vụ AI bên ngoài (quyền riêng tư)
+   ========================================================= */
+IF COL_LENGTH('Subjects', 'SttTerms') IS NULL
+    ALTER TABLE Subjects ADD SttTerms NVARCHAR(2000) NULL;
+GO
+
+IF COL_LENGTH('Subjects', 'AiTimeoutSeconds') IS NULL
+    ALTER TABLE Subjects ADD AiTimeoutSeconds INT NOT NULL
+        CONSTRAINT DF_Subjects_AiTimeoutSeconds DEFAULT 8
+        CONSTRAINT CK_Subjects_AiTimeoutSeconds CHECK (AiTimeoutSeconds BETWEEN 2 AND 30);
+GO
+
+IF COL_LENGTH('Subjects', 'UseExternalAi') IS NULL
+    ALTER TABLE Subjects ADD UseExternalAi BIT NOT NULL CONSTRAINT DF_Subjects_UseExternalAi DEFAULT 1;
+GO
+
+/* Từ điển mẫu cho PRN222 (chỉ đặt khi môn chưa có từ điển) */
+UPDATE Subjects SET SttTerms = N'ra dơ pây => Razor Pages
+rây dơ pây => Razor Pages
+đi ai => DI
+ây pi ai => API
+en ti ti phờ rêm uốc => Entity Framework
+ét kiu en => SQL'
+WHERE Code = 'PRN222' AND SttTerms IS NULL;
+GO
+
 IF OBJECT_ID(N'Voices') IS NULL
 CREATE TABLE Voices (
     Id          INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Voices PRIMARY KEY,

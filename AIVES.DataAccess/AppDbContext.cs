@@ -160,6 +160,9 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.TtsVoice).HasMaxLength(64);
+            entity.Property(e => e.SttTerms).HasMaxLength(2000);
+            entity.Property(e => e.AiTimeoutSeconds).HasDefaultValue(8);
+            entity.Property(e => e.UseExternalAi).HasDefaultValue(true);
             entity.Property(e => e.LanguageUpdatedBy)
                 .HasMaxLength(150)
                 .IsUnicode(false);

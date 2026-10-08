@@ -43,10 +43,12 @@ public class ScriptedFollowUp : IFollowUpGenerator
 {
     public Func<FollowUpContext, FollowUpDecision> Decide { get; set; } = _ => new FollowUpDecision(false, null, null);
     public List<FollowUpContext> Calls { get; } = new();
+    public List<CancellationToken> Tokens { get; } = new();
 
     public Task<FollowUpDecision> DecideAsync(FollowUpContext context, CancellationToken ct = default)
     {
         Calls.Add(context);
+        Tokens.Add(ct);
         return Task.FromResult(Decide(context));
     }
 

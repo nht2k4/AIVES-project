@@ -4,8 +4,8 @@
 
 | Gói | Phát khi nào | Trong gói có | Nhóm phải viết |
 |---|---|---|---|
-| `AIVES_Goi_Ass2` | sau khi xong Ass1 | solution 3 lớp: Entities, `AppDbContext`, Interfaces, DTOs, Models (hợp đồng, **không sửa**), stub `NotImplementedException`, **124 test Business + 44 test SQL đang đỏ**, khung web Razor Pages rỗng | toàn bộ code của chức năng 7 + 2 bằng Razor Pages, đăng ký tài khoản, SignalR, script database |
-| `AIVES_Goi_Ass3` | sau khi xong Ass2 | như trên cho chức năng 7 + 2 + 3: **204 test Business + 63 test SQL đỏ**, khung web MVC rỗng (đã có gói Swagger), file `ass3.http` (78 lời gọi API có kết quả mong đợi) | toàn bộ code của chức năng 7 + 2 + 3 bằng MVC **và Web API**, SignalR, VieNeu-TTS, AI hỏi xoáy, script database |
+| `AIVES_Goi_Ass2` | sau khi xong Ass1 | solution 3 lớp: Entities, `AppDbContext`, Interfaces, DTOs, Models (hợp đồng, **không sửa**), stub `NotImplementedException`, **127 test Business + 44 test SQL đang đỏ**, khung web Razor Pages rỗng | toàn bộ code của chức năng 7 + 2 bằng Razor Pages, đăng ký tài khoản, SignalR, script database |
+| `AIVES_Goi_Ass3` | sau khi xong Ass2 | như trên cho chức năng 7 + 2 + 3: **217 test Business + 68 test SQL đỏ**, khung web MVC rỗng (đã có gói Swagger), file `ass3.http` (85 lời gọi API có kết quả mong đợi) | toàn bộ code của chức năng 7 + 2 + 3 bằng MVC **và Web API**, SignalR, VieNeu-TTS, AI hỏi xoáy, script database |
 
 > **Trạng thái khi phát gói:** phần việc của **Tien** đã xong và có sẵn trong gói: script database (`Database/01_ChucNang7.sql`, `02_ChucNang2.sql`, Ass3 thêm `03_ChucNang3.sql`) và SignalR (`Infrastructure/LiveHub.cs`, `wwwroot/js/live.js`). Các bạn dùng ngay để tạo database và nối trang; việc còn lại của Tien là tích hợp, duyệt PR và demo.
 
@@ -55,7 +55,7 @@ Bốn luật không được phá:
 ## 0.3 Bắt đầu với gói (mỗi người làm một lần)
 
 1. Tien tạo repo GitHub từ gói, đẩy lên nhánh `main`, bật bảo vệ nhánh (bắt buộc PR + 1 người duyệt). Mọi người clone.
-2. Mở `AIVES.AssN.sln`, `dotnet build` (phải **sạch**), `dotnet test AIVES.Tests` (phải **đỏ hết**: 124 hoặc 204 test báo `NotImplementedException`). Đỏ là đúng: đó là việc của cả nhóm.
+2. Mở `AIVES.AssN.sln`, `dotnet build` (phải **sạch**), `dotnet test AIVES.Tests` (phải **đỏ hết**: 127 hoặc 217 test báo `NotImplementedException`). Đỏ là đúng: đó là việc của cả nhóm.
 3. Test SQL (`AIVES.Tests.Data`) tự **bỏ qua** cho tới khi đặt biến môi trường trỏ tới một database **riêng để test**:
    ```
    $env:AIVES_TEST_CONNECTION = "Server=.;Database=AIVESDb_Test;Trusted_Connection=True;TrustServerCertificate=True"
@@ -122,7 +122,7 @@ Tien 1.3 (LiveHub + live.js) ──► TV4 4.2 (vùng "accounts"), TV6 6.2 (vùn
 | Giai đoạn | Việc | Sang giai đoạn sau khi |
 |---|---|---|
 | **A. Nền** (2 buổi) | (database và SignalR của Tien đã có sẵn) TV6 6.1; TV2 2.1; TV3 3.1 | build sạch; mở được trang đăng nhập; `SchemaTests` xanh |
-| **B. Tầng dưới** (3 buổi, song song) | TV2 2.2, 2.3; TV3 3.2 đến 3.4; TV5 5.1; Tien 1.3 | **124 test Business xanh**, 44 test SQL xanh |
+| **B. Tầng dưới** (3 buổi, song song) | TV2 2.2, 2.3; TV3 3.2 đến 3.4; TV5 5.1; Tien 1.3 | **127 test Business xanh**, 44 test SQL xanh |
 | **C. Giao diện** (3 đến 4 buổi) | TV4 4.1, 4.2; TV5 5.2, 5.3; TV6 6.2 | checklist A, B, C, D, E, R, S tick hết |
 | **D. Tích hợp, demo** (1 đến 2 buổi) | Tien 1.4: chạy kịch bản demo, sửa lỗi chéo, mini-task, tập bảo vệ | demo chạy trơn |
 
@@ -130,7 +130,7 @@ Tien 1.3 (LiveHub + live.js) ──► TV4 4.2 (vùng "accounts"), TV6 6.2 (vùn
 
 ### A1.4 Định nghĩa xong Ass2
 
-- [ ] `dotnet build` sạch; 124/124 test `AIVES.Tests` xanh; 44/44 test `AIVES.Tests.Data` xanh trên SQL Server thật.
+- [ ] `dotnet build` sạch; 127/127 test `AIVES.Tests` xanh; 44/44 test `AIVES.Tests.Data` xanh trên SQL Server thật.
 - [ ] Checklist A, B, C, D, E, R, S (mục A4.3) tick đủ, mỗi mục có người duyệt bấm lại.
 - [ ] Không còn `NotImplementedException` trong solution (`grep -r NotImplementedException --include=*.cs`).
 - [ ] Mỗi người đã làm mini-task và trả lời câu hỏi bảo vệ. Tag `ass2-final`.
@@ -172,7 +172,7 @@ Tien 1.3 (LiveHub + live.js) ──► TV4 4.2 (vùng "accounts"), TV6 6.2 (vùn
 Đặc tả đầy đủ ở **A3.2**; test là bản đặc tả bằng code, đọc test trước khi viết. Có thể lấy code Ass1 của bạn rồi sửa cho xanh.
 
 **3.1** `Security/Pbkdf2PasswordHasher.cs` + `Services/AuthService.cs` (1,5 buổi). Điểm mới: chặn đăng nhập `Pending` **sau** khi kiểm mật khẩu; `GetActiveRoleAsync` trả `null` cho `Pending`. Test: `PasswordHasherTests` (9), `AuthServiceTests` (9).
-**3.2** `Services/AccountService.cs` (1,5 buổi). Điểm mới: `RegisterAsync` (cùng kiểm tra như `CreateAsync`, vai trò luôn `Pending`). Tự tạo hai lớp `internal static` dùng chung: `AccountRules` (chuẩn hóa email, kiểm email, mật khẩu tối thiểu 6) và `Mapper` (Entity → DTO, `ParseRole`; vai trò lạ → `Pending`). Test: `AccountServiceTests` (30).
+**3.2** `Services/AccountService.cs` (1,5 buổi). Điểm mới: mật khẩu **không được chứa khoảng trắng** (tạo, đăng ký, đặt lại); `RegisterAsync` (cùng kiểm tra như `CreateAsync`, vai trò luôn `Pending`). Tự tạo hai lớp `internal static` dùng chung: `AccountRules` (chuẩn hóa email, kiểm email, mật khẩu tối thiểu 6) và `Mapper` (Entity → DTO, `ParseRole`; vai trò lạ → `Pending`). Test: `AccountServiceTests` (33).
 **3.3** `AssignmentService`, `SubjectService`, `LanguageConfigService` (1,5 buổi). `CanAccessSubjectAsync` là hàm quan trọng nhất hệ thống. Test: `AssignmentServiceTests` (10), `SubjectServiceTests` (4), `LanguageConfigServiceTests` (6).
 **3.4** `Services/ExamService.cs` (2 buổi). Tạo phiên thi, đọc danh sách sinh viên, xếp khung giờ, gọi `QuestionAllocator` (của TV5), chọn lại bộ câu hỏi. Test: `ExamServiceTests` (41, có giá trị biên).
 
@@ -258,7 +258,7 @@ Dữ liệu mẫu: ít nhất 8 câu PRN222 và 4 câu ENW492c, câu nào cũng 
 - `IPasswordHasher`: PBKDF2-SHA256, 100.000 vòng, salt 16 byte ngẫu nhiên mỗi lần, key 32 byte, chuỗi `{vòng}.{salt base64}.{key base64}`; `Verify` đọc số vòng từ chuỗi, so sánh **thời gian cố định**, chuỗi hỏng trả `false`.
 - `IAuthService.LoginAsync`: email chuẩn hóa (trim, chữ thường); không có tài khoản / mật khẩu rỗng / sai → **cùng** thông báo `"Email hoặc mật khẩu không đúng."`; đúng nhưng bị khóa → thông báo khóa; đúng nhưng `Pending` → thông báo chờ cấp quyền. `GetActiveRoleAsync`: tên vai trò nếu đang hoạt động và **không** `Pending`, ngược lại `null`.
 - `IAccountService`:
-  - `CreateAsync`: họ tên không rỗng → email hợp lệ → mật khẩu ≥ 6 → vai trò hợp lệ (`Enum.IsDefined`) → email chưa dùng (không phân biệt hoa thường). Lưu email chuẩn hóa, mật khẩu băm, `IsActive = true`.
+  - `CreateAsync`: họ tên không rỗng → email hợp lệ → mật khẩu ≥ 6 ký tự và **không chứa khoảng trắng** (dấu cách, tab, xuống dòng; áp dụng cả `RegisterAsync` và `ResetPasswordAsync`) → vai trò hợp lệ (`Enum.IsDefined`) → email chưa dùng (không phân biệt hoa thường). Lưu email chuẩn hóa, mật khẩu băm, `IsActive = true`.
   - **`RegisterAsync(RegisterRequest(FullName, Email, Password))`**: như `CreateAsync` với vai trò `Pending`.
   - `UpdateAsync`: không tự đổi vai trò của mình; không hạ Admin cuối cùng đang hoạt động; giảng viên đang có phân công không đổi vai trò được. (Đổi `Pending` → vai khác chính là **cấp quyền**.)
   - `SetActiveAsync` (lũy đẳng; không tự khóa; không khóa Admin cuối), `ResetPasswordAsync`, `SearchAsync`, `GetByIdAsync`.
@@ -305,13 +305,13 @@ Quy tắc chung: PageModel chỉ gọi interface Business; mọi form POST có a
 
 ## A4. Kiểm thử
 
-### A4.1 Test tự động `AIVES.Tests` (124, không cần SQL Server)
+### A4.1 Test tự động `AIVES.Tests` (127, không cần SQL Server)
 
 | Lớp test | Số | Người | Lớp test | Số | Người |
 |---|---|---|---|---|---|
 | `PasswordHasherTests` | 9 | TV3 | `SubjectServiceTests` | 4 | TV3 |
 | `AuthServiceTests` | 9 | TV3 | `LanguageConfigServiceTests` | 6 | TV3 |
-| `AccountServiceTests` | 30 | TV3 | `ExamServiceTests` | 41 | TV3 |
+| `AccountServiceTests` | 33 | TV3 | `ExamServiceTests` | 41 | TV3 |
 | `AssignmentServiceTests` | 10 | TV3 | `QuestionAllocatorTests` | 6 | TV5 |
 | | | | `QuestionServiceTests` | 9 | TV5 |
 
@@ -335,6 +335,7 @@ Test dùng kho dữ liệu giả trong bộ nhớ (`AIVES.Tests/Support`) và b�
 **R. Tự đăng ký và cấp vai trò (TV4, TV3)**
 - [ ] Trang đăng nhập có link "Tạo tài khoản"; đã đăng nhập mà mở `/Auth/Register` → về trang chính.
 - [ ] Để trống / mật khẩu `123` / nhập lại khác → đúng các thông báo chuẩn.
+- [ ] Mật khẩu có khoảng trắng (`mat khau1`, hoặc dấu cách ở đầu/cuối) → `Mật khẩu không được chứa khoảng trắng.` ngay trên trình duyệt; tắt kiểm tra trình duyệt thì **Service vẫn chặn**. Áp dụng cả trang Tạo tài khoản và Đặt lại mật khẩu.
 - [ ] Đăng ký bằng email đã có (kể cả viết hoa) → báo trùng, giữ các ô đã nhập.
 - [ ] Đăng ký hợp lệ → về trang đăng nhập với thông báo chờ cấp quyền.
 - [ ] Đăng nhập tài khoản vừa tạo đúng mật khẩu → báo *đang chờ quản trị viên cấp vai trò*; sai mật khẩu → thông báo chung.
@@ -401,12 +402,16 @@ VieNeu-TTS không chạy thì phòng thi đọc bằng giọng trình duyệt v�
 
 | Thay đổi | Ảnh hưởng tới việc |
 |---|---|
+| **Góp ý 1:** mật khẩu không được chứa khoảng trắng (tạo, tự đăng ký, đặt lại; kiểm cả trên trình duyệt) | TV3 3.1, TV4 4.1, 4.2 (cũng áp dụng ở Ass2) |
+| **Góp ý 2:** MSSV trong danh sách thí sinh phải là **tài khoản Sinh viên có thật**, sai thì báo đúng mã và họ tên (giảng viên, admin không có MSSV nên không thể là thí sinh) | TV3 3.2 |
+| **Góp ý 3:** giảng viên và admin **không thi thay** sinh viên: chỉ chính sinh viên được bắt đầu, trả lời, nghe câu hỏi; nhân sự chỉ theo dõi trực tiếp và xem biên bản. Bỏ nút "Bắt đầu thi" ở Chi tiết phiên thi; phòng thi chỉ cho vai Sinh viên | TV3 3.3, TV4 4.3, TV6 6.3, 6.4 |
+| **Góp ý 4:** STT/TTS chỉnh tay theo môn ở trang Ngôn ngữ STT/TTS: **từ điển thuật ngữ** sửa lỗi STT tiếng Việt, **thời gian chờ AI** (giữ nhịp vấn đáp), **cho/không cho gửi câu trả lời tới AI bên ngoài** (quyền riêng tư); hệ thống không ghi âm, chỉ lưu văn bản | Tien 1.1 (cột mới), TV3 3.1, 3.3, TV5 5.2, TV6 6.2 |
 | Ass3 là **MVC + Web API** (không phải chỉ MVC): giữ đủ API cho chức năng 7, 2 và thêm API chức năng 3 | TV4 4.4, TV5 5.4, TV6 6.1 (Swagger, 401/403 cho `/api`), TV6 6.4 |
 | Thêm `POST /api/auth/register` (tự đăng ký qua API, vai trò Chờ cấp quyền) | TV4 4.4 |
 | Thêm `/api/interviews`: `my`, `{participantId}/start`, `turns/{turnId}/answer`, `turns/{turnId}/speech` (VieNeu), `{participantId}/transcript` | TV6 6.4 |
 | `InterviewStateDto` có thêm `SessionId` (để báo SignalR `exam-{id}` khi thí sinh thi) | TV3 3.3 (đã có test), TV6 |
 | Giao diện F7 và F2 viết lại bằng **MVC** (`AccountsController` có ô MSSV, `ExamsController` gồm cả ngân hàng câu hỏi); trang `Interview/Index`, `Interview/Session` cũ bỏ, vào phòng thi từ `/Exams/Details/{id}` | TV4 4.2, 4.3; TV6 6.3 |
-| File `ass3.http` trong gói: 78 lời gọi có kết quả mong đợi (thêm mục 7 đăng ký, mục 8 phỏng vấn AI) | mọi người làm API |
+| File `ass3.http` trong gói: 85 lời gọi có kết quả mong đợi (mục 3.10 đến 3.12 chỉnh tay STT/AI, 5.5 thí sinh chưa có tài khoản, 7 đăng ký, 8 phỏng vấn AI, 8.12 giảng viên thi thay bị chặn) | mọi người làm API |
 | Database và SignalR của Tien đã có sẵn trong gói | TV2, TV4, TV6 dùng ngay |
 | `VieNeuLauncher` chạy `uv run` (bỏ `--no-sync`) và cảnh báo khi VieNeu tự thoát; lý do: chuyển thư mục làm VieNeu chết ngay mà log không báo gì | TV2 2.5, checklist H |
 
@@ -430,7 +435,7 @@ Tien 1.1 (01, 02, 03) ──► TV2 2.1, 2.2 chạy Tests.Data
 TV3 3.1 ──► TV3 3.2 ──► TV3 3.3 (InterviewService cần IFollowUpGenerator, IVoiceService: test đã có bản giả)
 TV6 6.1 (Program.cs, AppController, _Layout) ──► TV4, TV5, TV2 2.4, TV6 6.3 làm trang
 TV2 2.3 (VieNeu chạy) ──► TV2 2.4 ──► TV6 6.3 (đọc câu hỏi bằng VieNeu)
-TV3 3.3 + TV6 6.2 + TV4 4.3 (nút Bắt đầu thi) ──► TV6 6.3 phòng thi: điểm nối cuối cùng
+TV3 3.3 + TV6 6.2 + TV5 5.3 (Bài thi của tôi: lối vào phòng thi của sinh viên) ──► TV6 6.3 phòng thi: điểm nối cuối cùng
 Tien 1.2 ──► TV4 4.2/4.3 (vùng live), TV6 6.3 (gửi exam-{id} khi thí sinh thi)
 TV6 6.1 (Swagger, cookie trả 401/403 cho /api) + TV4 4.4 (ApiControllerBase) ──► TV5 5.4, TV6 6.4
 ```
@@ -440,7 +445,7 @@ TV6 6.1 (Swagger, cookie trả 401/403 cho /api) + TV4 4.4 (ApiControllerBase) �
 | Giai đoạn | Việc | Sang giai đoạn sau khi |
 |---|---|---|
 | **A. Nền + chép lại phần cũ** (2 buổi) | (database và SignalR của Tien đã có sẵn) TV6 6.1; TV2 2.1; TV3 3.1, 3.2; TV5 5.1 (lấy từ Ass2 rồi sửa) | build sạch; **test chức năng 7 + 2 xanh** (132 test) |
-| **B. Lõi chức năng 3** (3 buổi) | TV3 3.3; TV6 6.2; TV2 2.2, 2.3, 2.4 (phần service) | **204 test xanh**, 63 test SQL xanh; VieNeu chạy được bằng tay |
+| **B. Lõi chức năng 3** (3 buổi) | TV3 3.3; TV6 6.2; TV2 2.2, 2.3, 2.4 (phần service) | **217 test xanh**, 68 test SQL xanh; VieNeu chạy được bằng tay |
 | **C. Giao diện MVC và API** (3 đến 4 buổi) | TV4 4.1 đến 4.4; TV5 5.2 đến 5.4; TV2 trang Giọng đọc + 2.5; TV6 6.3, 6.4; Tien 1.2 | checklist A, R3, B3, C, D, E3, F, G, H, S3 tick hết; **78 lời gọi `ass3.http` đúng** |
 | **D. Tích hợp, demo** (1 đến 2 buổi) | kịch bản demo, sửa lỗi chéo, mini-task, tập bảo vệ | demo chạy trơn |
 
@@ -448,9 +453,9 @@ TV6 6.1 (Swagger, cookie trả 401/403 cho /api) + TV4 4.4 (ApiControllerBase) �
 
 ### B1.4 Định nghĩa xong Ass3
 
-- [ ] `dotnet build` sạch; 204/204 test `AIVES.Tests`; 63/63 test `AIVES.Tests.Data` trên SQL Server thật.
+- [ ] `dotnet build` sạch; 217/217 test `AIVES.Tests`; 68/68 test `AIVES.Tests.Data` trên SQL Server thật.
 - [ ] Checklist B4.3 tick đủ (phòng thi thử bằng **Chrome hoặc Edge** có micro).
-- [ ] Chạy `ass3.http` từ trên xuống trên database mới: cả 78 lời gọi ra đúng **KẾT QUẢ MONG ĐỢI** (B4.4).
+- [ ] Chạy `ass3.http` từ trên xuống trên database mới: cả 85 lời gọi ra đúng **KẾT QUẢ MONG ĐỢI** (B4.4).
 - [ ] Khóa API AI **không** nằm trong bất kỳ file nào của repo (`git log -p -S"sk-"` trống).
 - [ ] Không còn `NotImplementedException`. Mỗi người làm mini-task và bảo vệ. Tag `ass3-final`.
 
@@ -478,9 +483,9 @@ TV6 6.1 (Swagger, cookie trả 401/403 cho /api) + TV4 4.4 (ApiControllerBase) �
 
 ### TV3: Business (luật) và máy trạng thái phỏng vấn
 
-**3.1** (1,5 buổi) chép các service chức năng 7 từ Ass2 rồi thêm luật **Sinh viên**: tạo/sửa tài khoản vai `Student` thì **bắt buộc** mã sinh viên (trim, ≤ 30, không trùng tài khoản khác); vai khác thì mã lưu `null`. `CanAccessSubjectAsync`: sinh viên → `false`. `LanguageConfigService.UpdateAsync` thêm `TtsVoice` (≤ 64; `null` = giữ nguyên, rỗng = về mặc định, có tên = đổi). `Mapper` đưa thêm `StudentCode`, `TtsVoice` vào DTO. Test: `PasswordHasherTests` (10, có mẫu sinh viên), `AuthServiceTests` (9), `AccountServiceTests` (34), `AssignmentServiceTests` (11), `SubjectServiceTests` (4), `LanguageConfigServiceTests` (8).
-**3.2** (0,5 buổi) chép `ExamService` từ Ass2. Test: `ExamServiceTests` (41).
-**3.3** (3 buổi) **`InterviewService`**, việc khó và đáng giá nhất. Đặc tả ở **B3.2**. Vẽ sơ đồ trạng thái thí sinh (`Scheduled → InProgress → Completed`) và của một câu chính (có/không hỏi xoáy) ra giấy trước. Làm theo nhóm test: `Start_*` → `Access_*` → `Submit_*` → hỏi xoáy → giới hạn → hết giờ → `GetMyInterviews`, `Transcript`, `Speak`. Test: `InterviewServiceTests` (32).
+**3.1** (1,5 buổi) chép các service chức năng 7 từ Ass2 rồi thêm luật **Sinh viên**: tạo/sửa tài khoản vai `Student` thì **bắt buộc** mã sinh viên (trim, ≤ 30, không trùng tài khoản khác); vai khác thì mã lưu `null`. `CanAccessSubjectAsync`: sinh viên → `false`. `LanguageConfigService.UpdateAsync` thêm `TtsVoice` (≤ 64; `null` = giữ nguyên, rỗng = về mặc định, có tên = đổi) và **3 thông số chỉnh tay**: `SttTerms` (≤ 2000 ký tự, mỗi dòng phải có dạng `cách nghe sai => cách viết đúng`, sai thì báo đúng số dòng; rỗng = xóa), `AiTimeoutSeconds` (2 đến 30), `UseExternalAi`; mọi trường `null` = giữ nguyên (trang Giọng đọc chỉ đổi giọng). Mật khẩu không khoảng trắng. `Mapper` đưa thêm `StudentCode`, `TtsVoice` vào DTO. Test: `PasswordHasherTests` (10, có mẫu sinh viên), `AuthServiceTests` (9), `AccountServiceTests` (37), `AssignmentServiceTests` (11), `SubjectServiceTests` (4), `LanguageConfigServiceTests` (13).
+**3.2** (1 buổi) chép `ExamService` từ Ass2, thêm luật **thí sinh phải tồn tại**: sau phần kiểm quyền và môn, mỗi MSSV phải có tài khoản Sinh viên (`IAccountRepository.StudentCodeExistsAsync`, không phân biệt hoa thường); thiếu thì `Fail` nêu đúng mã và họ tên. Test: `ExamServiceTests` (43).
+**3.3** (3 buổi) **`InterviewService`**, việc khó và đáng giá nhất. Đặc tả ở **B3.2**. Vẽ sơ đồ trạng thái thí sinh (`Scheduled → InProgress → Completed`) và của một câu chính (có/không hỏi xoáy) ra giấy trước. Làm theo nhóm test: `Start_*` → `Access_*` → `Submit_*` → hỏi xoáy → giới hạn → hết giờ → `GetMyInterviews`, `Transcript`, `Speak`. Điểm mới: **chỉ chính sinh viên** làm bài (`Start`, `SubmitAnswer`, `Speak`), nhân sự chỉ đọc biên bản; câu trả lời được **sửa theo từ điển thuật ngữ** của môn trước khi lưu và gửi AI; gọi AI với **thời gian chờ** và cờ **AllowExternalAi** của môn. Test: `InterviewServiceTests` (34).
 
 **Mini-task:** viết thêm 5 test cho tình huống bộ test chưa phủ (ví dụ: sinh viên bị khóa giữa buổi thi). **Câu hỏi bảo vệ:** (1) Vì sao server tự kiểm hết giờ (`AnswerSeconds + 15`) mà không tin cờ `timedOut` của trình duyệt? (2) Vì sao `SubmitAnswerAsync` lưu một lần? (3) `SpeakAsync` vì sao chỉ đọc nội dung câu hỏi **đã lưu** mà không nhận văn bản tùy ý? (4) `SecondsLeft` được kẹp trong `[0, AnswerSeconds]` để làm gì?
 
@@ -488,7 +493,7 @@ TV6 6.1 (Swagger, cookie trả 401/403 cho /api) + TV4 4.4 (ApiControllerBase) �
 
 **4.1** (1,5 buổi) `AuthController` (`Login`, `Register`, `Logout`, `AccessDenied`) + `ViewModels/LoginViewModel.cs` (`LoginViewModel`, `RegisterViewModel`) + views; Register gửi SignalR `accounts`. `HomeController.Index`: Sinh viên → `/MyExams`, còn lại → `/Exams`. Dưới form đăng nhập ghi thêm tài khoản sinh viên mẫu.
 **4.2** (2 buổi) `AccountsController` (`Index`, `Create`, `Edit`, `SetActive`, `ResetPassword`) + `AccountViewModels` có thêm ô **Mã sinh viên (MSSV)** ở Tạo và Sửa (gợi ý: chỉ dùng khi vai trò là Sinh viên); danh sách hiện MSSV cạnh vai trò; vùng `account-list`/`accounts`.
-**4.3** (3 buổi) `ExamsController` (`Index`, `Create`, `Details`, `SetOpen`, `Reallocate`, `Questions`, `AddQuestion`, `SetQuestionActive`) + `ViewModels/ExamViewModels.cs` + views: viết lại 4 trang Razor Pages của Ass2 bằng MVC. Trang Chi tiết thêm cột nút **Bắt đầu thi / Tiếp tục thi** (phiên mở, chưa thi xong) và **Biên bản** (đã bắt đầu) trỏ tới `InterviewController` của TV6. Gửi SignalR như Ass2.
+**4.3** (3 buổi) `ExamsController` (`Index`, `Create`, `Details`, `SetOpen`, `Reallocate`, `Questions`, `AddQuestion`, `SetQuestionActive`) + `ViewModels/ExamViewModels.cs` + views: viết lại 4 trang Razor Pages của Ass2 bằng MVC. Trang Chi tiết có nút **Biên bản** (thí sinh đã bắt đầu) trỏ tới `InterviewController` của TV6; **không** có nút bắt đầu thi (giảng viên không thi thay, trạng thái thí sinh tự cập nhật bằng SignalR). Trang Tạo phiên thi hiện lỗi "chưa có tài khoản Sinh viên" của Service. Gửi SignalR như Ass2.
 - Học trước: so sánh PageModel và Controller (handler `OnPostXxx` ↔ action `[HttpPost]`), model binding với prefix (`NewQuestion.Content` → tham số `newQuestion`), `[ValidateNever]` cho danh sách chọn.
 
 **4.4 Web API: nền + đăng nhập + tài khoản** (2 buổi, làm **sớm** vì TV5 và TV6 dùng lớp cha của bạn). `Controllers/Api/ApiControllerBase.cs`: `[ApiController]`, `[Authorize]`, `[Produces("application/json")]`, thuộc tính `CurrentUserId`, hàm `Respond(ServiceResult)` (thành công → 204) và `Respond<T>(ServiceResult<T>)` (thành công → 200 + dữ liệu); lỗi → 400 / 404 / 403 với thân `{ "error": "..." }`. `AuthApiController` (`/api/auth`: `login` đặt cookie, sai → 401; `logout`; `me`; **`register`** → 201 + báo SignalR `accounts`). `AccountsApiController` (`/api/accounts`, chỉ Admin). Hợp đồng ở **B3.5**, kiểm bằng `ass3.http` mục 0, 1, 2, 7.
@@ -499,7 +504,7 @@ TV6 6.1 (Swagger, cookie trả 401/403 cho /api) + TV4 4.4 (ApiControllerBase) �
 ### TV5: Câu hỏi, Môn học, Bài thi của tôi, Biên bản
 
 **5.1** (0,5 buổi) chép `QuestionAllocator`, `QuestionService` từ Ass2. Test: 6 + 9.
-**5.2** (2 buổi) `SubjectsController` (`Index`, `Details`, `Assign`, `Unassign`), `MySubjectsController`, `LanguageController` (`Edit` GET/POST) + views; nút **Câu hỏi** / khung **Ngân hàng câu hỏi** trỏ tới `/Exams/Questions?subjectId=`.
+**5.2** (2 buổi) `SubjectsController` (`Index`, `Details`, `Assign`, `Unassign`), `MySubjectsController`, `LanguageController` (`Edit` GET/POST) + views (trang Ngôn ngữ có thêm khung **Chỉnh tay cho phòng thi**: ô nhiều dòng từ điển thuật ngữ, ô số thời gian chờ AI 2 đến 30 giây, ô chọn "Cho phép gửi câu trả lời tới AI bên ngoài" kèm ghi chú quyền riêng tư); nút **Câu hỏi** / khung **Ngân hàng câu hỏi** trỏ tới `/Exams/Questions?subjectId=`.
 **5.3** (2 buổi) `MyExamsController` (chỉ Sinh viên, gọi `IInterviewService.GetMyInterviewsAsync`) + view: bảng Phiên thi, Môn, Khung giờ, Trạng thái (Sẵn sàng / Đang thi / Đã thi / Phiên thi đã đóng), nút **Vào phòng thi / Tiếp tục thi**; chưa có phiên nào: *"Chưa có phiên thi nào có tên bạn..."*. View **`Views/Interview/Transcript.cshtml`** (model `TranscriptDto`): mỗi lượt một thẻ, nhãn Câu chính / **Hỏi xoáy** (thụt vào), **Hết giờ**, giờ hỏi, "Lý do hỏi thêm", câu trả lời (rỗng: "(không trả lời)", chưa trả lời: "(chưa trả lời)"); link quay về `/Exams/Details/{SessionId}`.
 
 **5.4 Web API: môn học, phiên thi, câu hỏi** (2 buổi): `SubjectsApiController` (`/api/subjects`: danh sách theo vai trò, chi tiết, phân công/gỡ, ngôn ngữ GET/PUT có `ttsVoice`, `speech`) và `ExamsApiController` (`/api/exams`: danh sách, môn được tạo, tạo → 201 `{ "id" }`, chi tiết, `status`, `reallocate`; `/api/subjects/{id}/questions` GET/POST; `/api/questions/{id}/active`). Kế thừa `ApiControllerBase` của TV4. Kiểm bằng `ass3.http` mục 3 đến 6.
@@ -514,7 +519,7 @@ TV6 6.1 (Swagger, cookie trả 401/403 cho /api) + TV4 4.4 (ApiControllerBase) �
 - Web API trong `Program.cs`: `AddJsonOptions` với `JsonStringEnumConverter` (enum ra chữ: `"Admin"`), `AddEndpointsApiExplorer` + `AddSwaggerGen` (gói `Swashbuckle.AspNetCore` đã có trong `.csproj`), `UseSwagger` + `UseSwaggerUI`; cookie: `OnRedirectToLogin` / `OnRedirectToAccessDenied` trả **401 / 403** cho đường dẫn bắt đầu bằng `/api` (trang web vẫn chuyển hướng như cũ).
 - `AppController` (`CurrentUserId`, `FlashSuccess/Error`, `MapFailure`), `ClaimsPrincipalExtensions`, `EnumExtensions`; `_Layout` điều hướng theo vai trò (nhân sự có thêm link **API** tới `/swagger`): Sinh viên: *Bài thi của tôi*; Admin: *Môn học và phân công, Tài khoản, Phiên thi, Giọng đọc*; Giảng viên: *Môn của tôi, Phiên thi, Giọng đọc*; nhãn vai trò; nạp SignalR khi đã đăng nhập.
 **6.2** (2,5 buổi) `Services/FollowUpGenerator.cs`: phần **luật dự phòng** (có test: câu trả lời cuối dưới 12 từ → hỏi giải thích rõ hơn; ngược lại tìm ý chính đầu tiên chưa nhắc tới, so khớp không phân biệt hoa thường **và dấu**, bỏ qua ý đã hỏi lại; đủ ý → không hỏi; tiếng Anh không có dấu tiếng Việt) và phần **DeepSeek** khi có `Ai:ApiKey` (`POST https://api.deepseek.com/chat/completions`, model `deepseek-chat`, `response_format: json_object`, khuôn `{"ask","question","reason"}`, `static HttpClient` 20 giây; **mọi lỗi** rơi về luật dự phòng). Khóa lưu bằng `dotnet user-secrets set "Ai:ApiKey" "<khóa>" --project AIVES.Ass3.MVC`. Test: `FollowUpGeneratorFallbackTests` (9).
-**6.3** (4 buổi) **Phòng thi**: `InterviewController` (`Room`, `Transcript` GET; `Start`, `Answer`, `Speak` POST, token chống giả mạo qua tiêu đề `RequestVerificationToken`), view `Views/Interview/Room.cshtml` + JavaScript (Web Speech API: `SpeechSynthesis`, `SpeechRecognition`), `wwwroot/js/pcm-player.js` (phát PCM theo luồng bằng Web Audio). Sau mỗi `Start`/`Answer` thành công gửi SignalR `exam-{SessionId}` (`"<tên> đang thi."` / `"<tên> đã thi xong."`). Luồng ở **B3.3**.
+**6.3** (4 buổi) **Phòng thi** (chỉ vai Sinh viên: `[Authorize(Roles = Student)]` ở `Room`, Service chặn thêm lần nữa; trang có ghi chú quyền riêng tư "không ghi âm, chỉ lưu văn bản"): `InterviewController` (`Room`, `Transcript` GET; `Start`, `Answer`, `Speak` POST, token chống giả mạo qua tiêu đề `RequestVerificationToken`), view `Views/Interview/Room.cshtml` + JavaScript (Web Speech API: `SpeechSynthesis`, `SpeechRecognition`), `wwwroot/js/pcm-player.js` (phát PCM theo luồng bằng Web Audio). Sau mỗi `Start`/`Answer` thành công gửi SignalR `exam-{SessionId}` (`"<tên> đang thi."` / `"<tên> đã thi xong."`). Luồng ở **B3.3**.
 
 **6.4 API chức năng 3** (1 buổi): `InterviewsApiController` (`/api/interviews`) gọi **cùng** `IInterviewService` với phòng thi MVC, nên mọi luật giữ nguyên: `GET my` (chỉ Sinh viên), `POST {participantId}/start`, `POST turns/{turnId}/answer` (thân `{ "answer", "timedOut" }`, trả trạng thái mới: **câu hỏi xoáy** `kind = "FollowUp"` kèm vị trí `followUpIndex/followUpMax`, hoặc câu chính kế, hoặc `finished`), `GET turns/{turnId}/speech` (`audio/pcm` hoặc **503**), `GET {participantId}/transcript`. Start/answer thành công thì gửi SignalR `exam-{sessionId}` như phòng thi. Kiểm bằng `ass3.http` mục 8.
 
@@ -529,6 +534,7 @@ TV6 6.1 (Swagger, cookie trả 401/403 cho /api) + TV4 4.4 (ApiControllerBase) �
 - `Accounts.StudentCode` VARCHAR(30) NULL + `SET QUOTED_IDENTIFIER ON` + chỉ mục `UQ_Accounts_StudentCode` UNIQUE `WHERE StudentCode IS NOT NULL`.
 - `CK_Accounts_Role` nới thành `'Admin','Lecturer','Student','Pending'` (drop rồi add, chỉ khi định nghĩa cũ thiếu `Student` hoặc `Pending`).
 - `Subjects.TtsVoice` NVARCHAR(64) NULL (giọng riêng của môn, NULL = mặc định).
+- Thông số chỉnh tay theo môn: `Subjects.SttTerms` NVARCHAR(2000) NULL (từ điển thuật ngữ) · `Subjects.AiTimeoutSeconds` INT NOT NULL `DF_Subjects_AiTimeoutSeconds` = 8, `CK_Subjects_AiTimeoutSeconds` 2..30 · `Subjects.UseExternalAi` BIT NOT NULL `DF_Subjects_UseExternalAi` = 1. Có từ điển mẫu cho PRN222 (`ra dơ pây => Razor Pages`...).
 - `InterviewTurns`: `Id` `PK_InterviewTurns` (thứ tự lượt = thứ tự `Id`) · `ParticipantId` `FK_InterviewTurns_Participants` CASCADE · `QuestionId` `FK_InterviewTurns_Questions` (câu **chính** của lượt) · `Kind` VARCHAR(10) `CK_InterviewTurns_Kind` ∈ `'Main','FollowUp'` · `Content` NVARCHAR(1000) · `Reason` NVARCHAR(500) NULL · `Answer` NVARCHAR(MAX) NULL · `AskedAt` DATETIME2 (UTC) · `AnsweredAt` DATETIME2 NULL · `TimedOut` BIT `DF_InterviewTurns_TimedOut` = 0.
 - `Voices`: `Id` `PK_Voices` · `Name` NVARCHAR(64) `UQ_Voices_Name` · `Description` NVARCHAR(64) NULL · `FileName` VARCHAR(100) · `Denoise` BIT `DF_Voices_Denoise` = 1 · `Clip` VARBINARY(MAX) · `CreatedBy` `FK_Voices_Accounts` · `CreatedAt` `DF_Voices_CreatedAt`.
 - Sinh viên mẫu: `sv.a@fu.edu.vn` / `Student@123`, `Nguyễn Văn A`, vai `Student`, `StudentCode = 'SE180001'`, hash `100000.bhe8jteDTPLA1QMnp8+N/A==.vrsScOF3bxc5hi9vlXdNRj3fBVRaFv7+oI0GLYMN73U=`.
@@ -540,9 +546,10 @@ TV6 6.1 (Swagger, cookie trả 401/403 cho /api) + TV4 4.4 (ApiControllerBase) �
 **DTO thêm/đổi:** `AccountDto.StudentCode`, `CreateAccountRequest/UpdateAccountRequest.StudentCode`, `LanguageConfigDto.TtsVoice`, `UpdateLanguageRequest.TtsVoice`, `SpeechConfig(SubjectCode, SttLocale, TtsLocale, TtsVoice)`, `InterviewStateDto` (có `SessionId` để báo SignalR), `TurnDto`, `TranscriptDto`, `MyInterviewDto`, `VoiceDtos`.
 
 **`IInterviewService`** (TV3):
-- **Quyền** (dùng chung): Sinh viên đang hoạt động chỉ vào lượt thi có `StudentCode` trùng mã của mình (không phân biệt hoa thường); Admin/Giảng viên qua `CanAccessSubjectAsync`; còn lại `Forbidden`.
+- **Quyền làm bài** (`Start`, `SubmitAnswer`, `Speak`): **chỉ** Sinh viên đang hoạt động có `StudentCode` trùng thí sinh (không phân biệt hoa thường). Giảng viên và Admin, kể cả được phân công, nhận `Forbidden` ("Chỉ chính sinh viên dự thi mới được làm bài..."): **không thi thay**.
+- **Quyền xem biên bản** (`GetTranscript`): sinh viên của lượt thi đó, hoặc Admin/Giảng viên qua `CanAccessSubjectAsync`; còn lại `Forbidden`.
 - `StartAsync`: NotFound/Forbidden; chưa Completed thì phiên phải `Open`; chưa có lượt nào → cần có bộ câu hỏi, tạo lượt `Main` của câu `OrderNo` nhỏ nhất, thí sinh → `InProgress`; gọi lại không tạo thêm lượt.
-- `SubmitAnswerAsync`: lượt tồn tại → quyền → phiên `Open` → lượt **chưa trả lời**; ghi câu trả lời (trim, cắt 4000 ký tự, `AnsweredAt`); `TimedOut` = cờ trình duyệt **hoặc** quá `AnswerSeconds + 15` giây; **hỏi xoáy** chỉ khi câu trả lời không rỗng **và** số lượt xoáy của câu chính < `MaxFollowUpsPerQuestion` **và** tổng lượt xoáy của thí sinh < `MaxFollowUps` **và** `IFollowUpGenerator` nói `Ask` có câu hỏi; không thì sang câu chính kế tiếp, hết câu → `Completed`; **lưu một lần**.
+- `SubmitAnswerAsync`: lượt tồn tại → quyền → phiên `Open` → lượt **chưa trả lời**; ghi câu trả lời (trim, **sửa theo `SttTerms` của môn**: thay cả cụm từ, không phân biệt hoa thường, cụm dài trước; rồi cắt 4000 ký tự, `AnsweredAt`); `TimedOut` = cờ trình duyệt **hoặc** quá `AnswerSeconds + 15` giây; **hỏi xoáy** chỉ khi câu trả lời không rỗng **và** số lượt xoáy của câu chính < `MaxFollowUpsPerQuestion` **và** tổng lượt xoáy của thí sinh < `MaxFollowUps` **và** `IFollowUpGenerator` nói `Ask` có câu hỏi (gọi với `CancellationToken` hết hạn sau `AiTimeoutSeconds` của môn và `FollowUpContext.AllowExternalAi = UseExternalAi`); không thì sang câu chính kế tiếp, hết câu → `Completed`; **lưu một lần**.
 - `InterviewStateDto`: `Finished`, lượt đang mở, `MainIndex/MainTotal`, `FollowUpIndex/FollowUpMax`, `SecondsLeft = AnswerSeconds + 15 − đã trôi qua` kẹp `[0, AnswerSeconds]`, `SttLocale/TtsLocale`, `SessionId`.
 - `GetMyInterviewsAsync` (chỉ Sinh viên có mã), `GetTranscriptAsync`, `SpeakAsync` (đọc **nội dung đã lưu** bằng giọng của môn; không có âm thanh → `Fail` để trình duyệt dùng giọng dự phòng).
 
@@ -559,11 +566,11 @@ Quy tắc chung như A3.3 (Controller thay cho PageModel, lớp cha `AppControll
 | `Accounts`: `Index`, `Create`, `Edit`, `SetActive`, `ResetPassword` | Admin | TV4 | như Ass2 + ô **MSSV**; có vai Sinh viên |
 | `Subjects`: `Index`, `Details`, `Assign`, `Unassign` | Admin | TV5 | như Ass2 |
 | `MySubjects/Index` | Giảng viên | TV5 | như Ass2 |
-| `Language/Edit` | Admin, Giảng viên | TV5 | như Ass2 |
-| `Exams`: `Index`, `Create`, `Details`, `SetOpen`, `Reallocate`, `Questions`, `AddQuestion`, `SetQuestionActive` | Admin, Giảng viên | TV4 | như Ass2 + nút **Bắt đầu thi / Tiếp tục thi**, **Biên bản** ở Chi tiết |
+| `Language/Edit` | Admin, Giảng viên | TV5 | như Ass2 + khung **Chỉnh tay cho phòng thi** (từ điển thuật ngữ, thời gian chờ AI, AI bên ngoài, ghi chú quyền riêng tư) |
+| `Exams`: `Index`, `Create`, `Details`, `SetOpen`, `Reallocate`, `Questions`, `AddQuestion`, `SetQuestionActive` | Admin, Giảng viên | TV4 | như Ass2 + nút **Biên bản** ở Chi tiết (không có nút bắt đầu thi); trạng thái thí sinh tự cập nhật |
 | `MyExams/Index` | Sinh viên | TV5 | các lượt thi theo MSSV |
 | `Interview/Transcript?participantId=` | Admin, Giảng viên | TV6 (action), TV5 (view) | biên bản |
-| `Interview/Room?participantId=` | Sinh viên (của mình), Admin, Giảng viên | TV6 | phòng thi |
+| `Interview/Room?participantId=` | **chỉ Sinh viên** (lượt thi của mình) | TV6 | phòng thi, có ghi chú quyền riêng tư |
 | `Interview/Start`, `Answer`, `Speak` (POST) | như trên | TV6 | xem dưới |
 | `Voices`: `Index`, `Preview`, `Clone`, `Delete`, `Assign` | Admin, Giảng viên (Clone/Delete chỉ Admin) | TV2 | trạng thái VieNeu, danh sách giọng, nghe thử, giọng theo môn, clone |
 
@@ -596,27 +603,27 @@ Hub, sự kiện, `live.js` **giống Ass2** (A3.4). Topic:
 |---|---|---|---|
 | Đăng nhập | `POST /api/auth/login` (200 `LoginResult` / 401), `POST /api/auth/logout` (204), `GET /api/auth/me`, `POST /api/auth/register` (201 `{id}`, ẩn danh) | mọi người | TV4 |
 | Tài khoản | `GET /api/accounts?keyword=&role=`, `GET /api/accounts/{id}`, `POST /api/accounts` (201), `PUT /api/accounts/{id}` (cấp vai trò, `studentCode`), `PATCH /api/accounts/{id}/active` `{isActive}`, `POST /api/accounts/{id}/reset-password` `{newPassword}` | Admin | TV4 |
-| Môn, phân công, ngôn ngữ | `GET /api/subjects`, `GET /api/subjects/{id}` (Admin), `POST /api/subjects/{id}/lecturers` `{lecturerId}`, `DELETE /api/subjects/{id}/lecturers/{lecturerId}`, `GET/PUT /api/subjects/{id}/language` `{sttLanguage, ttsLanguage, ttsVoice?}`, `GET /api/subjects/{id}/speech` | Admin, Giảng viên | TV5 |
+| Môn, phân công, ngôn ngữ | `GET /api/subjects`, `GET /api/subjects/{id}` (Admin), `POST /api/subjects/{id}/lecturers` `{lecturerId}`, `DELETE /api/subjects/{id}/lecturers/{lecturerId}`, `GET/PUT /api/subjects/{id}/language` `{sttLanguage, ttsLanguage, ttsVoice?, sttTerms?, aiTimeoutSeconds?, useExternalAi?}`, `GET /api/subjects/{id}/speech` | Admin, Giảng viên | TV5 |
 | Phiên thi | `GET /api/exams`, `GET /api/exams/subjects`, `POST /api/exams` (201 `{id}`), `GET /api/exams/{id}`, `PATCH /api/exams/{id}/status` `{open}`, `POST /api/exams/{id}/reallocate` | Admin, Giảng viên | TV5 |
 | Câu hỏi | `GET/POST /api/subjects/{id}/questions` `{content, expectedPoints?}`, `PATCH /api/questions/{id}/active` `{isActive}` | Admin, Giảng viên | TV5 |
-| **Phỏng vấn AI** | `GET /api/interviews/my` (Sinh viên), `POST /api/interviews/{participantId}/start`, `POST /api/interviews/turns/{turnId}/answer` `{answer, timedOut}` → `InterviewStateDto` (câu hỏi xoáy hoặc câu kế), `GET /api/interviews/turns/{turnId}/speech` (`audio/pcm` / 503), `GET /api/interviews/{participantId}/transcript` | Sinh viên (của mình), Admin, Giảng viên (môn được phân công) | TV6 |
+| **Phỏng vấn AI** | `GET /api/interviews/my` (Sinh viên), `POST /api/interviews/{participantId}/start`, `POST /api/interviews/turns/{turnId}/answer` `{answer, timedOut}` → `InterviewStateDto` (câu hỏi xoáy hoặc câu kế), `GET /api/interviews/turns/{turnId}/speech` (`audio/pcm` / 503), `GET /api/interviews/{participantId}/transcript` | `start`, `answer`, `speech`: **chỉ Sinh viên** (của mình), nhân sự nhận 403; `transcript`: sinh viên của lượt đó, Admin, Giảng viên (môn được phân công) | TV6 |
 
 ## B4. Kiểm thử
 
-### B4.1 Test tự động `AIVES.Tests` (204)
+### B4.1 Test tự động `AIVES.Tests` (217)
 
 | Lớp test | Số | Người | Lớp test | Số | Người |
 |---|---|---|---|---|---|
-| `PasswordHasherTests` | 10 | TV3 | `ExamServiceTests` | 41 | TV3 |
-| `AuthServiceTests` | 9 | TV3 | `InterviewServiceTests` | 32 | TV3 |
-| `AccountServiceTests` | 34 | TV3 | `QuestionAllocatorTests` | 6 | TV5 |
+| `PasswordHasherTests` | 10 | TV3 | `ExamServiceTests` | 43 | TV3 |
+| `AuthServiceTests` | 9 | TV3 | `InterviewServiceTests` | 34 | TV3 |
+| `AccountServiceTests` | 37 | TV3 | `QuestionAllocatorTests` | 6 | TV5 |
 | `AssignmentServiceTests` | 11 | TV3 | `QuestionServiceTests` | 9 | TV5 |
-| `SubjectServiceTests` | 4 | TV3 | `FollowUpGeneratorFallbackTests` | 9 | TV6 |
-| `LanguageConfigServiceTests` | 8 | TV3 | `VoiceServiceTests` | 31 | TV2 |
+| `SubjectServiceTests` | 4 | TV3 | `FollowUpGeneratorFallbackTests` | 10 | TV6 |
+| `LanguageConfigServiceTests` | 13 | TV3 | `VoiceServiceTests` | 31 | TV2 |
 
-### B4.2 Test SQL `AIVES.Tests.Data` (63)
+### B4.2 Test SQL `AIVES.Tests.Data` (68)
 
-`SchemaTests` 32 (Tien) · `AccountRepositoryTests` 8 · `SubjectRepositoryTests` 5 · `LecturerSubjectRepositoryTests` 2 · `QuestionRepositoryTests` 2 · `ExamRepositoryTests` 6 · `InterviewRepositoryTests` 4 · `VoiceRepositoryTests` 4 (TV2).
+`SchemaTests` 35 (Tien) · `AccountRepositoryTests` 8 · `SubjectRepositoryTests` 7 · `LecturerSubjectRepositoryTests` 2 · `QuestionRepositoryTests` 2 · `ExamRepositoryTests` 6 · `InterviewRepositoryTests` 4 · `VoiceRepositoryTests` 4 (TV2).
 
 Phần gọi mạng (`VieNeuTextToSpeech`, phần DeepSeek của `FollowUpGenerator`) **không có test tự động**: kiểm bằng checklist G, H và một chương trình console nhỏ (không commit) đính ảnh vào PR.
 
@@ -625,6 +632,7 @@ Phần gọi mạng (`VieNeuTextToSpeech`, phần DeepSeek của `FollowUpGenera
 **A, C, D:** làm lại các mục A, C, D của Ass2 (A4.3) trên bản MVC. Thêm: đăng nhập `sv.a@fu.edu.vn` → vào "Bài thi của tôi", thanh điều hướng chỉ có mục đó; sinh viên gõ `/Accounts`, `/Exams`, `/Voices` → Không có quyền.
 
 **R3. Đăng ký và cấp vai trò Sinh viên (TV4, TV3)**
+- [ ] Mật khẩu có khoảng trắng bị từ chối ở Tạo tài khoản, Đăng ký và Đặt lại mật khẩu (như Ass2, mục R).
 - [ ] Làm lại toàn bộ mục R của Ass2.
 - [ ] Admin cấp vai trò **Sinh viên** mà để trống MSSV → báo *"Sinh viên phải có mã sinh viên."*, không lưu.
 - [ ] MSSV trùng với sinh viên khác (`SE180001`) → báo trùng.
@@ -634,20 +642,24 @@ Phần gọi mạng (`VieNeuTextToSpeech`, phần DeepSeek của `FollowUpGenera
 **B3. Tài khoản (TV4):** làm lại mục B của Ass2; ô lọc vai trò có "Sinh viên"; trang Tạo có ô MSSV.
 
 **E3. Phiên thi (TV4):** làm lại mục E của Ass2 trên bản MVC, thêm:
-- [ ] Chi tiết phiên **đang mở**: thí sinh chưa thi có nút "Bắt đầu thi"; đang thi có "Tiếp tục thi" và "Biên bản"; đã thi chỉ có "Biên bản". Phiên **đã đóng**: không có nút bắt đầu.
+- [ ] Chi tiết phiên: **không có** nút "Bắt đầu thi" (giảng viên không thi thay); thí sinh đã bắt đầu có nút "Biên bản". Giảng viên gõ tay `/Interview/Room?participantId=...` → Không có quyền.
+- [ ] Tạo phiên thi có MSSV chưa có tài khoản (`SE999999; Ai Đó`) → báo `Thí sinh SE999999 (Ai Đó) chưa có tài khoản Sinh viên...`, không tạo phiên. Có tài khoản thì tạo được (không phân biệt hoa thường).
 
 **F. Bài thi của tôi và Biên bản (TV5)**
 - [ ] `sv.a@fu.edu.vn` (có tên `SE180001` trong một phiên) → thấy đúng phiên của mình, "Sẵn sàng", nút "Vào phòng thi". Sinh viên chưa có tên trong phiên nào → thông báo trống.
 - [ ] Biên bản sau khi thi: thẻ từng lượt; lượt hỏi xoáy thụt vào, có "Hỏi xoáy" và "Lý do hỏi thêm"; lượt hết giờ có "Hết giờ"; link quay lại đúng trang Chi tiết phiên thi.
 
 **G. Phòng thi (TV6), Chrome hoặc Edge**
-- [ ] Sinh viên mở phòng thi của mình → tên, mã, môn, nút "Bắt đầu phỏng vấn". Mở phòng thi của **người khác** → bị chặn.
+- [ ] Sinh viên mở phòng thi của mình → tên, mã, môn, nút "Bắt đầu phỏng vấn", ghi chú quyền riêng tư (không ghi âm, chỉ lưu văn bản). Mở phòng thi của **người khác** → bị chặn. Giảng viên/Admin mở phòng thi → bị chặn.
 - [ ] Bắt đầu → "Câu chính 1/N"; AI **đọc thành tiếng**; **sau khi đọc xong** đồng hồ mới chạy và micro mở.
 - [ ] Nói → chữ hiện **ngay khi nói**; gõ sửa tay rồi nói tiếp → phần sửa không mất.
 - [ ] Nộp → âm thanh dừng ngay, sang câu kế. Trả lời mơ hồ ("Cái đó dùng ModelState") → hỏi xoáy 1/2, mơ hồ tiếp → 2/2, rồi sang câu chính kế (không có lần 3).
 - [ ] Đặt 10 giây/câu, để hết giờ → tự nộp; biên bản có "Hết giờ". Nhấp đúp Nộp → chỉ một lượt được ghi.
 - [ ] Tải lại trang giữa chừng → "Tiếp tục" về đúng câu, đồng hồ còn đúng thời gian còn lại.
-- [ ] Câu cuối → "Đã hoàn thành"; sinh viên có nút về Bài thi của tôi, giảng viên có Xem biên bản. Vào lại → không tạo thêm lượt.
+- [ ] Câu cuối → "Đã hoàn thành", nút về Bài thi của tôi. Vào lại → không tạo thêm lượt.
+- [ ] **Từ điển thuật ngữ:** môn PRN222 có dòng `ra dơ pây => Razor Pages`; nói/gõ "ra dơ pây" → biên bản lưu "Razor Pages".
+- [ ] **Nhịp vấn đáp:** có khóa DeepSeek, đo thời gian từ lúc bấm Nộp tới lúc hiện câu tiếp theo (DevTools, tab Network, lời gọi `Answer`): thường dưới 1,5 giây. Đặt thời gian chờ AI 2 giây và rút mạng → vẫn hỏi tiếp sau khoảng 2 giây bằng luật dự phòng.
+- [ ] **Quyền riêng tư:** bỏ chọn "Cho phép gửi câu trả lời tới AI bên ngoài" ở trang Ngôn ngữ → câu hỏi xoáy là câu của luật dự phòng (không gọi DeepSeek), kiểm bằng log hoặc rút mạng thấy không chậm đi.
 - [ ] Đóng phiên rồi sinh viên nộp → báo phiên đã đóng. Từ chối micro → vẫn gõ và nộp được.
 - [ ] Tắt VieNeu → đọc bằng giọng trình duyệt; bật VieNeu → `Speak` trả `audio/pcm`, byte đầu dưới 1 giây.
 - [ ] Xóa `Ai:ApiKey` → vẫn hỏi xoáy bằng luật dự phòng, không lỗi. Môn có giọng riêng → đọc đúng giọng đó.
@@ -676,12 +688,12 @@ Mở `ass3.http` bằng Visual Studio 2022 (17.12 trở lên, hỗ trợ biến 
 |---|---|---|
 | 0, 1 | chưa đăng nhập → 401, Swagger, đăng nhập (sai mật khẩu và sai email cùng một thông báo) | TV4, TV6 |
 | 2 | tài khoản: tạo sinh viên, trùng MSSV, thiếu MSSV, tự khóa mình, đặt lại mật khẩu | TV4 |
-| 3, 4 | môn học, phân công, ngôn ngữ, giọng; giảng viên sửa môn không được phân công → 403 | TV5 |
-| 5, 6 | câu hỏi, tạo phiên thi (ngày quá khứ, số ngoài khoảng, dòng sai, môn không được phân công), đóng/mở, chọn lại; sinh viên gọi API nhân sự → 403 | TV5 |
+| 3, 4 | môn học, phân công, ngôn ngữ, giọng; **chỉnh tay STT/AI** (3.10 đến 3.12: từ điển thuật ngữ, thời gian chờ AI ngoài 2..30 → 400, dòng từ điển sai → 400); giảng viên sửa môn không được phân công → 403 | TV5 |
+| 5, 6 | câu hỏi, tạo phiên thi (**thí sinh chưa có tài khoản → 400**, ngày quá khứ, số ngoài khoảng, dòng sai, môn không được phân công), đóng/mở, chọn lại; sinh viên gọi API nhân sự → 403 | TV5 |
 | 7 | **tự đăng ký** → chờ cấp quyền → admin cấp vai trò Sinh viên (thiếu MSSV → 400) → đăng nhập được | TV4 |
-| 8 | **phỏng vấn AI**: vào lượt thi người khác → 403; bắt đầu; trả lời mơ hồ → **câu hỏi xoáy 1/2, 2/2**, rồi sang câu chính kế (không có lượt 3); nộp lại → 400; bỏ trống + hết giờ → không hỏi xoáy; giọng đọc 200/503; biên bản của mình 200, của người khác 403; giảng viên xem biên bản 200 | TV6, TV3 |
+| 8 | **phỏng vấn AI**: vào lượt thi người khác → 403; bắt đầu; trả lời mơ hồ → **câu hỏi xoáy 1/2, 2/2**, rồi sang câu chính kế (không có lượt 3); nộp lại → 400; bỏ trống + hết giờ → không hỏi xoáy; giọng đọc 200/503; biên bản của mình 200, của người khác 403; giảng viên xem biên bản 200 ; **giảng viên bắt đầu hoặc trả lời thay → 403** (8.12); câu trả lời có "ra dơ pây" được lưu thành "Razor Pages" | TV6, TV3 |
 
-Đã chạy thử trên bản tham chiếu với **DeepSeek thật và VieNeu-TTS thật**: cả 78 lời gọi đúng. Mục 8.9 trả về luồng `audio/pcm` khoảng 5,6 giây (VieNeu tắt thì 503). Câu hỏi xoáy do DeepSeek viết bám đúng nội dung câu hỏi chính, ví dụ câu chính về Dependency Injection, sinh viên trả lời "Cái đó dùng ModelState" thì AI hỏi *"Bạn có thể giải thích Dependency Injection là gì không? Và trong ASP.NET Core, làm thế nào để đăng ký một service với vòng đời scoped?"* với lý do *"Câu trả lời chưa đúng trọng tâm..."*. Không có khóa AI thì dùng luật dự phòng (câu hỏi mẫu "Bạn có thể giải thích rõ hơn...").
+Đã chạy thử trên bản tham chiếu với **DeepSeek thật và VieNeu-TTS thật**: cả 85 lời gọi chạy, 68 lời gọi có mã mong đợi đều khớp. Đo nhịp vấn đáp (nộp câu trả lời tới khi có câu tiếp theo, có gọi DeepSeek): trung bình khoảng 0,8 giây, chậm nhất khoảng 1,1 giây. Mục 8.9 trả về luồng `audio/pcm` khoảng 5,6 giây (VieNeu tắt thì 503). Câu hỏi xoáy do DeepSeek viết bám đúng nội dung câu hỏi chính, ví dụ câu chính về Dependency Injection, sinh viên trả lời "Cái đó dùng ModelState" thì AI hỏi *"Bạn có thể giải thích Dependency Injection là gì không? Và trong ASP.NET Core, làm thế nào để đăng ký một service với vòng đời scoped?"* với lý do *"Câu trả lời chưa đúng trọng tâm..."*. Không có khóa AI thì dùng luật dự phòng (câu hỏi mẫu "Bạn có thể giải thích rõ hơn...").
 
 ---
 

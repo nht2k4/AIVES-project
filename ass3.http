@@ -190,6 +190,30 @@ Content-Type: application/json
 ###
 GET {{host}}/api/subjects/3/speech
 
+### 3.10 Chỉnh tay cho phòng thi môn PRN222 (1): từ điển thuật ngữ STT, thời gian chờ AI, quyền riêng tư
+# KẾT QUẢ MONG ĐỢI: 204; khối kế: speech có sttTerms, aiTimeoutSeconds 6, useExternalAi true
+PUT {{host}}/api/subjects/1/language
+Content-Type: application/json
+
+{ "sttLanguage": "Vietnamese", "ttsLanguage": "Vietnamese", "sttTerms": "ra dơ pây => Razor Pages\nđi ai => DI", "aiTimeoutSeconds": 6, "useExternalAi": true }
+
+###
+GET {{host}}/api/subjects/1/speech
+
+### 3.11 Thời gian chờ AI ngoài khoảng 2 đến 30 giây
+# KẾT QUẢ MONG ĐỢI: 400, {"error":"Thời gian chờ AI từ 2 đến 30 giây."}
+PUT {{host}}/api/subjects/1/language
+Content-Type: application/json
+
+{ "sttLanguage": "Vietnamese", "ttsLanguage": "Vietnamese", "aiTimeoutSeconds": 1 }
+
+### 3.12 Dòng từ điển sai dạng (thiếu "=>")
+# KẾT QUẢ MONG ĐỢI: 400, báo dòng 1 của từ điển thuật ngữ
+PUT {{host}}/api/subjects/1/language
+Content-Type: application/json
+
+{ "sttLanguage": "Vietnamese", "ttsLanguage": "Vietnamese", "sttTerms": "chỉ có một vế" }
+
 
 # ====================================================================================================
 # 4. GIẢNG VIÊN: quyền theo môn (TV5), đăng nhập an.nv (chỉ được phân công PRN222 = môn 1)
@@ -257,7 +281,18 @@ Content-Type: application/json
 # KẾT QUẢ MONG ĐỢI: 200, chỉ có PRN222
 GET {{host}}/api/exams/subjects
 
-### 5.5 Tạo phiên thi
+### 5.5 Tạo phiên thi có thí sinh CHƯA có tài khoản (SE180003 chưa ai có, mục 7 mới cấp)
+# KẾT QUẢ MONG ĐỢI: 400, {"error":"Thí sinh SE180003 (Lê Thị C) chưa có tài khoản Sinh viên trong hệ thống..."}
+POST {{host}}/api/exams
+Content-Type: application/json
+
+{
+  "subjectId": 1, "title": "Thiếu tài khoản", "startTime": "2035-01-01T08:00:00", "slotMinutes": 10,
+  "mainQuestionCount": 3, "maxFollowUps": 4, "maxFollowUpsPerQuestion": 2, "answerSeconds": 60,
+  "studentList": "SE180001; Nguyễn Văn A\nSE180003; Lê Thị C"
+}
+
+### 5.5b Tạo phiên thi (cả hai MSSV đều có tài khoản Sinh viên: sv.a, sv.b ở 2.4)
 # KẾT QUẢ MONG ĐỢI: 201, {"id":1}
 POST {{host}}/api/exams
 Content-Type: application/json
@@ -271,7 +306,7 @@ Content-Type: application/json
   "maxFollowUps": 4,
   "maxFollowUpsPerQuestion": 2,
   "answerSeconds": 60,
-  "studentList": "SE180001; Nguyễn Văn A\nSE180002; Sinh Viên B\nSE180003; Lê Thị C"
+  "studentList": "SE180001; Nguyễn Văn A\nSE180002; Sinh Viên B"
 }
 
 ### 5.6 Tạo phiên thi với ngày ở quá khứ
@@ -319,7 +354,7 @@ Content-Type: application/json
 }
 
 ### 5.10 Danh sách và chi tiết phiên thi
-# KẾT QUẢ MONG ĐỢI: 200. Chi tiết: 3 thí sinh, khung giờ liên tiếp (8:00, 8:10, 8:20), mỗi người 3 câu,
+# KẾT QUẢ MONG ĐỢI: 200. Chi tiết: 2 thí sinh, khung giờ liên tiếp (8:00, 8:10), mỗi người 3 câu,
 # HAI THÍ SINH LIỀN NHAU KHÔNG CÓ CÂU HỎI CHUNG.
 GET {{host}}/api/exams
 
@@ -420,7 +455,7 @@ Content-Type: application/json
 
 { "fullName": "Lê Thị C", "email": "le.c@fu.edu.vn", "role": "Student" }
 
-### 7.7 Cấp vai trò Sinh viên với MSSV SE180003 (có trong phiên thi 1)
+### 7.7 Cấp vai trò Sinh viên với MSSV SE180003 (từ giờ giảng viên mới thêm được mã này vào phiên thi)
 # KẾT QUẢ MONG ĐỢI: 204
 PUT {{host}}/api/accounts/{{reg.response.body.id}}
 Content-Type: application/json
@@ -437,8 +472,9 @@ Content-Type: application/json
 
 # ====================================================================================================
 # 8. CHỨC NĂNG 3: PHỎNG VẤN AI VÀ CÂU HỎI XOÁY QUA API (TV6)
-# Phiên thi 1 (mục 5.5): 3 câu chính, tối đa 2 lượt hỏi xoáy mỗi câu, 4 lượt mỗi thí sinh, 60 giây mỗi câu.
-# Thí sinh: 1 = SE180001 (sv.a), 2 = SE180002 (sv.b, tạo ở 2.4), 3 = SE180003 (le.c).
+# Phiên thi 1 (mục 5.5b): 3 câu chính, tối đa 2 lượt hỏi xoáy mỗi câu, 4 lượt mỗi thí sinh, 60 giây mỗi câu.
+# Thí sinh: 1 = SE180001 (sv.a), 2 = SE180002 (sv.b, tạo ở 2.4). Chỉ chính sinh viên được làm bài; giảng viên chỉ xem (8.11).
+# Môn PRN222 có từ điển thuật ngữ (3.10): câu trả lời "ra dơ pây" được lưu thành "Razor Pages".
 # Không đặt khóa Ai:ApiKey thì AI dùng luật dự phòng: câu trả lời dưới 12 từ chắc chắn bị hỏi xoáy.
 # Có khóa DeepSeek thì AI tự quyết định, kết quả 8.4, 8.5 có thể khác (thường vẫn hỏi xoáy vì câu trả lời quá mơ hồ).
 # ====================================================================================================
@@ -469,7 +505,7 @@ POST {{host}}/api/interviews/2/start
 POST {{host}}/api/interviews/turns/{{s1.response.body.turnId}}/answer
 Content-Type: application/json
 
-{ "answer": "Cái đó dùng ModelState", "timedOut": false }
+{ "answer": "Cái đó dùng ra dơ pây với ModelState", "timedOut": false }
 
 ### 8.5 Vẫn mơ hồ
 # KẾT QUẢ MONG ĐỢI: 200, kind = "FollowUp", followUpIndex 2
@@ -507,7 +543,8 @@ Content-Type: application/json
 GET {{host}}/api/interviews/turns/{{s5.response.body.turnId}}/speech
 
 ### 8.10 Biên bản của mình, và của người khác
-# KẾT QUẢ MONG ĐỢI: 200 (5 lượt: Main, FollowUp kèm reason, FollowUp, Main, Main; lượt thứ 4 có timedOut true) rồi 403
+# KẾT QUẢ MONG ĐỢI: 200 (5 lượt: Main, FollowUp kèm reason, FollowUp, Main, Main; lượt thứ 4 có timedOut true;
+# câu trả lời lượt 1 đã được sửa thành "Cái đó dùng Razor Pages với ModelState") rồi 403
 GET {{host}}/api/interviews/2/transcript
 
 ###
@@ -525,3 +562,13 @@ GET {{host}}/api/interviews/2/transcript
 
 ###
 GET {{host}}/api/interviews/my
+
+### 8.12 Giảng viên KHÔNG được thi thay sinh viên (kể cả môn mình phụ trách)
+# KẾT QUẢ MONG ĐỢI: 403, {"error":"Chỉ chính sinh viên dự thi mới được làm bài..."} cho cả bắt đầu và trả lời
+POST {{host}}/api/interviews/2/start
+
+###
+POST {{host}}/api/interviews/turns/{{s5.response.body.turnId}}/answer
+Content-Type: application/json
+
+{ "answer": "Thi hộ", "timedOut": false }

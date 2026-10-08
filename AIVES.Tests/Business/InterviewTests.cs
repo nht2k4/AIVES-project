@@ -42,13 +42,13 @@ public class InterviewServiceTests
 
     private async Task<InterviewStateDto> StartAsync()
     {
-        var result = await Service().StartAsync(_lecturer.Id, Participant.Id);
+        var result = await Service().StartAsync(_student.Id, Participant.Id);
         Assert.True(result.Succeeded, result.Error);
         return result.Data!;
     }
 
     private async Task<ServiceResult<InterviewStateDto>> AnswerAsync(InterviewStateDto state, string answer, bool timedOut = false) =>
-        await Service().SubmitAnswerAsync(_lecturer.Id, state.TurnId!.Value, answer, timedOut);
+        await Service().SubmitAnswerAsync(_student.Id, state.TurnId!.Value, answer, timedOut);
 
     // ---- Bắt đầu
     [Fact]
@@ -96,7 +96,7 @@ public class InterviewServiceTests
     public async Task Start_ClosedSession_IsRejected()
     {
         _session.Status = ExamStatuses.Closed;
-        var result = await Service().StartAsync(_lecturer.Id, Participant.Id);
+        var result = await Service().StartAsync(_student.Id, Participant.Id);
 
         Assert.False(result.Succeeded);
         Assert.Empty(_db.Turns);
@@ -106,8 +106,9 @@ public class InterviewServiceTests
     public async Task Start_ParticipantWithoutQuestions_IsRejected()
     {
         var empty = _db.AddSession(_subject, _lecturer, mainQuestions: 0, 4, 2, 60, ExamStatuses.Open, "SE5");
+        var se5 = _db.AddAccount(Roles.Student, studentCode: "SE5");
 
-        var result = await Service().StartAsync(_lecturer.Id, empty.ExamParticipants.First().Id);
+        var result = await Service().StartAsync(se5.Id, empty.ExamParticipants.First().Id);
 
         Assert.False(result.Succeeded);
     }
@@ -115,7 +116,7 @@ public class InterviewServiceTests
     [Fact]
     public async Task Start_UnknownParticipant_IsNotFound()
     {
-        Assert.Equal(ServiceErrorType.NotFound, (await Service().StartAsync(_lecturer.Id, 999)).ErrorType);
+        Assert.Equal(ServiceErrorType.NotFound, (await Service().StartAsync(_student.Id, 999)).ErrorType);
     }
 
     // ---- Quyền
@@ -135,14 +136,25 @@ public class InterviewServiceTests
         Assert.True((await Service().StartAsync(student.Id, Participant.Id)).Succeeded);
     }
 
+    // Giảng viên và admin KHÔNG thi thay sinh viên: không bắt đầu, không trả lời, không nghe câu hỏi; chỉ xem biên bản
     [Fact]
-    public async Task Access_LecturerNotAssignedToTheSubject_IsForbidden_AdminIsAllowed()
+    public async Task Access_StaffCannotTakeTheExam_ButCanReadTheTranscript()
     {
-        var stranger = _db.AddAccount(Roles.Lecturer);
         var admin = _db.AddAccount(Roles.Admin);
+        var stranger = _db.AddAccount(Roles.Lecturer);
 
-        Assert.Equal(ServiceErrorType.Forbidden, (await Service().StartAsync(stranger.Id, Participant.Id)).ErrorType);
-        Assert.True((await Service().StartAsync(admin.Id, Participant.Id)).Succeeded);
+        Assert.Equal(ServiceErrorType.Forbidden, (await Service().StartAsync(_lecturer.Id, Participant.Id)).ErrorType);
+        Assert.Equal(ServiceErrorType.Forbidden, (await Service().StartAsync(admin.Id, Participant.Id)).ErrorType);
+        Assert.Empty(_db.Turns);
+
+        var state = await StartAsync();
+        Assert.Equal(ServiceErrorType.Forbidden, (await Service().SubmitAnswerAsync(_lecturer.Id, state.TurnId!.Value, "thi hộ", false)).ErrorType);
+        Assert.Equal(ServiceErrorType.Forbidden, (await Service().SpeakAsync(admin.Id, state.TurnId!.Value)).ErrorType);
+        Assert.Null(_db.Turns.Single().Answer);
+
+        Assert.True((await Service().GetTranscriptAsync(_lecturer.Id, Participant.Id)).Succeeded);
+        Assert.True((await Service().GetTranscriptAsync(admin.Id, Participant.Id)).Succeeded);
+        Assert.Equal(ServiceErrorType.Forbidden, (await Service().GetTranscriptAsync(stranger.Id, Participant.Id)).ErrorType);
     }
 
     [Fact]
@@ -150,6 +162,31 @@ public class InterviewServiceTests
     {
         _student.IsActive = false;
         Assert.Equal(ServiceErrorType.Forbidden, (await Service().StartAsync(_student.Id, Participant.Id)).ErrorType);
+    }
+
+    // ---- Thông số chỉnh tay của môn
+    [Fact]
+    public async Task Submit_FixesTheSubjectsTerms_BeforeSavingAndBeforeAskingTheAi()
+    {
+        _language.Config = new SpeechConfig("PRN222", "vi-VN", "vi-VN", SttTerms: "ra dơ pây => Razor Pages\nđi ai => DI");
+        var state = await StartAsync();
+
+        await AnswerAsync(state, "Em dùng RA DƠ PÂY với đi ai, không phải radơpây");
+
+        Assert.Equal("Em dùng Razor Pages với DI, không phải radơpây", _db.Turns.First().Answer);
+        Assert.Equal("Em dùng Razor Pages với DI, không phải radơpây", _ai.Calls.Single().Exchanges.Last().Answer);
+    }
+
+    [Fact]
+    public async Task Submit_PassesTheSubjectsAiTimeoutAndPrivacySetting()
+    {
+        _language.Config = new SpeechConfig("PRN222", "vi-VN", "vi-VN", AiTimeoutSeconds: 3, UseExternalAi: false);
+        var state = await StartAsync();
+
+        await AnswerAsync(state, "Một câu trả lời");
+
+        Assert.False(_ai.Calls.Single().AllowExternalAi);   // môn tắt AI bên ngoài
+        Assert.True(_ai.Tokens.Single().CanBeCanceled);     // có hạn chờ AI, quá hạn thì dùng luật dự phòng
     }
 
     // ---- Nộp câu trả lời: sang câu chính kế tiếp, kết thúc
@@ -190,7 +227,7 @@ public class InterviewServiceTests
         state = (await AnswerAsync(state, "Câu 1")).Data!;
         await AnswerAsync(state, "Câu 2");
 
-        var again = await Service().StartAsync(_lecturer.Id, Participant.Id);
+        var again = await Service().StartAsync(_student.Id, Participant.Id);
 
         Assert.True(again.Data!.Finished);
         Assert.Equal(2, _db.Turns.Count);
@@ -253,14 +290,15 @@ public class InterviewServiceTests
     {
         var limited = _db.AddSession(_subject, _lecturer, mainQuestions: 2, maxFollowUps: 1, maxPerQuestion: 5, 60, ExamStatuses.Open, "SE7");
         var participant = limited.ExamParticipants.First();
+        var se7 = _db.AddAccount(Roles.Student, studentCode: "SE7");
         _ai.Decide = ScriptedFollowUp.Always().Decide;
 
-        var state = (await Service().StartAsync(_lecturer.Id, participant.Id)).Data!;
-        state = (await Service().SubmitAnswerAsync(_lecturer.Id, state.TurnId!.Value, "a", false)).Data!;
+        var state = (await Service().StartAsync(se7.Id, participant.Id)).Data!;
+        state = (await Service().SubmitAnswerAsync(se7.Id, state.TurnId!.Value, "a", false)).Data!;
         Assert.Equal(TurnKinds.FollowUp, state.Kind);                                             // dùng hết 1 câu đào sâu của cả buổi thi
-        state = (await Service().SubmitAnswerAsync(_lecturer.Id, state.TurnId!.Value, "b", false)).Data!;
+        state = (await Service().SubmitAnswerAsync(se7.Id, state.TurnId!.Value, "b", false)).Data!;
         Assert.Equal((TurnKinds.Main, 2), (state.Kind, state.MainIndex));                         // câu chính 2
-        state = (await Service().SubmitAnswerAsync(_lecturer.Id, state.TurnId!.Value, "c", false)).Data!;
+        state = (await Service().SubmitAnswerAsync(se7.Id, state.TurnId!.Value, "c", false)).Data!;
 
         Assert.True(state.Finished);                                                              // không được hỏi xoáy thêm nữa
     }
@@ -357,7 +395,7 @@ public class InterviewServiceTests
         var state = await StartAsync();
         var stranger = _db.AddAccount(Roles.Lecturer);
 
-        Assert.Equal(ServiceErrorType.NotFound, (await Service().SubmitAnswerAsync(_lecturer.Id, 999, "x", false)).ErrorType);
+        Assert.Equal(ServiceErrorType.NotFound, (await Service().SubmitAnswerAsync(_student.Id, 999, "x", false)).ErrorType);
         Assert.Equal(ServiceErrorType.Forbidden, (await Service().SubmitAnswerAsync(stranger.Id, state.TurnId!.Value, "x", false)).ErrorType);
     }
 
@@ -414,7 +452,7 @@ public class InterviewServiceTests
         _language.Config = new SpeechConfig("PRN222", "vi-VN", "vi-VN", "Hải Đăng");
         var state = await StartAsync();
 
-        var result = await Service().SpeakAsync(_lecturer.Id, state.TurnId!.Value);
+        var result = await Service().SpeakAsync(_student.Id, state.TurnId!.Value);
 
         Assert.True(result.Succeeded);
         Assert.Equal("Hải Đăng", _voices.VoicesUsed.Last());
@@ -426,7 +464,7 @@ public class InterviewServiceTests
         _voices.Available = false;
         var state = await StartAsync();
 
-        var result = await Service().SpeakAsync(_lecturer.Id, state.TurnId!.Value);
+        var result = await Service().SpeakAsync(_student.Id, state.TurnId!.Value);
 
         Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
     }
@@ -437,7 +475,7 @@ public class InterviewServiceTests
         var state = await StartAsync();
         var stranger = _db.AddAccount(Roles.Lecturer);
 
-        Assert.Equal(ServiceErrorType.NotFound, (await Service().SpeakAsync(_lecturer.Id, 999)).ErrorType);
+        Assert.Equal(ServiceErrorType.NotFound, (await Service().SpeakAsync(_student.Id, 999)).ErrorType);
         Assert.Equal(ServiceErrorType.Forbidden, (await Service().SpeakAsync(stranger.Id, state.TurnId!.Value)).ErrorType);
     }
 }

@@ -87,6 +87,7 @@ public class SchemaTests
     {
         "PK_Accounts", "UQ_Accounts_Email", "CK_Accounts_Role", "UQ_Accounts_StudentCode",
         "PK_Subjects", "UQ_Subjects_Code", "CK_Subjects_SttLanguage", "CK_Subjects_TtsLanguage",
+        "CK_Subjects_AiTimeoutSeconds", "DF_Subjects_AiTimeoutSeconds", "DF_Subjects_UseExternalAi",
         "PK_LecturerSubjects", "FK_LecturerSubjects_Accounts", "FK_LecturerSubjects_Subjects",
         "PK_Questions", "FK_Questions_Subjects",
         "PK_ExamSessions", "CK_ExamSessions_Status", "FK_ExamSessions_Subjects", "FK_ExamSessions_Accounts",

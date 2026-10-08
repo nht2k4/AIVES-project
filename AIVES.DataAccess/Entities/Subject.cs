@@ -24,5 +24,11 @@ public partial class Subject
 
     public string? TtsVoice { get; set; }
 
+    public string? SttTerms { get; set; }
+
+    public int AiTimeoutSeconds { get; set; }
+
+    public bool UseExternalAi { get; set; }
+
     public virtual ICollection<LecturerSubject> LecturerSubjects { get; set; } = new List<LecturerSubject>();
 }

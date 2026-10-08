@@ -278,6 +278,45 @@ public class LanguageConfigServiceTests
         Assert.Null(subject.TtsVoice);                       // rỗng = về giọng mặc định
     }
 
+    // ---- Thông số STT/AI chỉnh tay theo môn
+    [Fact]
+    public async Task Update_ManualSpeechSettings_AreSaved_AndNullKeepsThem()
+    {
+        var admin = _db.AddAccount(Roles.Admin);
+        var subject = _db.AddSubject("PRN222");
+
+        var result = await Service().UpdateAsync(admin.Id, new UpdateLanguageRequest(subject.Id, AppLanguage.Vietnamese, AppLanguage.Vietnamese,
+            SttTerms: " ra dơ pây => Razor Pages \n\nđi ai => DI ", AiTimeoutSeconds: 5, UseExternalAi: false));
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(("ra dơ pây => Razor Pages \n\nđi ai => DI", 5, false), (subject.SttTerms, subject.AiTimeoutSeconds, subject.UseExternalAi));
+
+        // Trang Giọng đọc chỉ đổi giọng (các trường khác null): không được làm mất thông số đã chỉnh
+        await Service().UpdateAsync(admin.Id, new UpdateLanguageRequest(subject.Id, AppLanguage.Vietnamese, AppLanguage.Vietnamese, "Mai Anh"));
+        Assert.Equal((5, false), (subject.AiTimeoutSeconds, subject.UseExternalAi));
+        Assert.NotNull(subject.SttTerms);
+
+        await Service().UpdateAsync(admin.Id, new UpdateLanguageRequest(subject.Id, AppLanguage.Vietnamese, AppLanguage.Vietnamese, SttTerms: "  "));
+        Assert.Null(subject.SttTerms);                       // rỗng = xóa từ điển
+    }
+
+    [Theory]
+    [InlineData("chỉ có một vế", null)]                     // thiếu "=>"
+    [InlineData("ra dơ pây =>", null)]                       // thiếu vế đúng
+    [InlineData(null, 1)]
+    [InlineData(null, 31)]
+    public async Task Update_BadSttTermsOrAiTimeout_IsRejected(string? terms, int? timeout)
+    {
+        var admin = _db.AddAccount(Roles.Admin);
+        var subject = _db.AddSubject("PRN222");
+
+        var result = await Service().UpdateAsync(admin.Id, new UpdateLanguageRequest(subject.Id, AppLanguage.Vietnamese, AppLanguage.Vietnamese,
+            SttTerms: terms, AiTimeoutSeconds: timeout));
+
+        Assert.False(result.Succeeded);
+        Assert.Equal((8, null as string), (subject.AiTimeoutSeconds, subject.SttTerms));
+    }
+
     [Fact]
     public async Task Update_TtsVoiceLongerThan64_IsRejected()
     {
@@ -294,11 +333,12 @@ public class LanguageConfigServiceTests
     {
         var subject = _db.AddSubject("ENW492c", stt: "en-US", tts: "en-US");
         subject.TtsVoice = "Mai Anh";
+        subject.SttTerms = "ây pi ai => API";
 
         var result = await Service().GetSpeechConfigAsync(subject.Id);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(new SpeechConfig("ENW492c", "en-US", "en-US", "Mai Anh"), result.Data);
+        Assert.Equal(new SpeechConfig("ENW492c", "en-US", "en-US", "Mai Anh", "ây pi ai => API", 8, true), result.Data);
         Assert.Equal(ServiceErrorType.NotFound, (await Service().GetSpeechConfigAsync(999)).ErrorType);
     }
 }

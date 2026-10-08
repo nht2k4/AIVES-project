@@ -54,7 +54,8 @@ public class TestDb
 
     public Subject AddSubject(string code, bool active = true, string stt = "vi-VN", string tts = "vi-VN")
     {
-        var subject = new Subject { Id = NextId(), Code = code, Name = $"Môn {code}", IsActive = active, SttLanguage = stt, TtsLanguage = tts };
+        var subject = new Subject { Id = NextId(), Code = code, Name = $"Môn {code}", IsActive = active, SttLanguage = stt, TtsLanguage = tts,
+            AiTimeoutSeconds = 8, UseExternalAi = true }; // giống giá trị mặc định trong database
         Subjects.Add(subject);
         return subject;
     }

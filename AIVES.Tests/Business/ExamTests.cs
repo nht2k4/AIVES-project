@@ -191,6 +191,8 @@ public class ExamServiceTests
         _subject = _db.AddSubject("PRN222");
         _db.Assign(_lecturer, _subject);
         _db.AddQuestions(_subject, 8);
+        // Thí sinh phải có tài khoản Sinh viên: tạo sẵn SE1 đến SE200 cho các test dưới đây
+        for (var i = 1; i <= 200; i++) _db.AddAccount(Roles.Student, studentCode: $"SE{i}");
     }
 
     private ExamService Service() =>
@@ -279,6 +281,23 @@ public class ExamServiceTests
         var person = Assert.Single(_db.Sessions.Single().ExamParticipants);
         Assert.Equal(count, _db.Sessions.Single().ExamParticipants.Count);
         Assert.Equal((code, name), (person.StudentCode, person.FullName));
+    }
+
+    [Fact]
+    public async Task Create_EveryStudentCodeMustBelongToAStudentAccount()
+    {
+        // SE999 không có tài khoản; giảng viên, admin không có MSSV nên cũng không thể là thí sinh
+        var result = await Service().CreateAsync(_lecturer.Id, Request(r => r with { StudentList = "SE1; Nguyễn A\nSE999; Không Có" }));
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("SE999", result.Error);
+        Assert.Empty(_db.Sessions);
+    }
+
+    [Fact]
+    public async Task Create_StudentCodeCheck_IgnoresCase()
+    {
+        Assert.True((await Service().CreateAsync(_lecturer.Id, Request(r => r with { StudentList = "se1; Nguyễn A" }))).Succeeded);
     }
 
     [Theory]
