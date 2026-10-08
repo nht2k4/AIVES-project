@@ -250,6 +250,25 @@ public class AccountServiceTests
         Assert.Single(_db.Accounts);
     }
 
+    // Mật khẩu không được chứa khoảng trắng (đầu, giữa, cuối, kể cả tab)
+    [Theory]
+    [InlineData("mat khau1")]
+    [InlineData(" secret1")]
+    [InlineData("secret1\t")]
+    public async Task Password_WithWhitespace_IsRejected_ForCreateRegisterAndReset(string password)
+    {
+        var target = _db.AddAccount(Roles.Lecturer, "an@fu.edu.vn", password: "Secret@1");
+
+        Assert.False((await Service().CreateAsync(new CreateAccountRequest("An", "moi@fu.edu.vn", password, AppRole.Lecturer))).Succeeded);
+        Assert.False((await Service().RegisterAsync(new RegisterRequest("An", "moi2@fu.edu.vn", password))).Succeeded);
+        var reset = await Service().ResetPasswordAsync(target.Id, password);
+
+        Assert.False(reset.Succeeded);
+        Assert.Contains("khoảng trắng", reset.Error);
+        Assert.Single(_db.Accounts);
+        Assert.True(_db.Hasher.Verify("Secret@1", target.PasswordHash));
+    }
+
     [Fact]
     public async Task Register_ThenAdminGrantsRole_AccountCanLogIn()
     {
