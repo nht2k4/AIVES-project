@@ -1,0 +1,28 @@
+@page
+@model AIVES.Ass2.Razor.Pages.Language.EditModel
+@{
+    ViewData["Title"] = "Đổi ngôn ngữ";
+}
+@if (Model.IsAdmin)
+{
+    <a asp-page="/Subjects/Details" asp-route-id="@Model.Config.SubjectId" class="small">Quay lại chi tiết môn học</a>
+}
+else
+{
+    <a asp-page="/MySubjects/Index" class="small">Quay lại Môn của tôi</a>
+}
+<div class="mt-2 mb-4"><h1 class="h3">Đổi ngôn ngữ STT/TTS</h1><p class="text-muted mb-0">@Model.Config.SubjectCode — @Model.Config.SubjectName</p></div>
+<div class="card shadow-sm tv5-form">
+    <div class="card-body p-4">
+        <form method="post" asp-route-subjectId="@Model.Config.SubjectId">
+            <div asp-validation-summary="All" class="text-danger mb-3" role="alert"></div>
+            <div class="mb-3"><label asp-for="SttLanguage" class="form-label">Ngôn ngữ nhận dạng giọng nói (STT)</label><select asp-for="SttLanguage" asp-items="Html.GetEnumSelectList<AppLanguage>()" class="form-select"></select><span asp-validation-for="SttLanguage" class="text-danger"></span></div>
+            <div class="mb-4"><label asp-for="TtsLanguage" class="form-label">Ngôn ngữ đọc văn bản (TTS)</label><select asp-for="TtsLanguage" asp-items="Html.GetEnumSelectList<AppLanguage>()" class="form-select"></select><span asp-validation-for="TtsLanguage" class="text-danger"></span></div>
+            <div class="d-flex gap-2"><button type="submit" class="btn btn-primary">Lưu ngôn ngữ</button><a asp-page="/Exams/Questions" asp-route-subjectId="@Model.Config.SubjectId" class="btn btn-outline-secondary">Câu hỏi</a></div>
+        </form>
+        @if (Model.Config.UpdatedAt.HasValue)
+        {
+            <p class="small text-muted mt-4 mb-0">Lần sửa gần nhất @Model.Config.UpdatedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") bởi @(Model.Config.UpdatedBy ?? "—").</p>
+        }
+    </div>
+</div>

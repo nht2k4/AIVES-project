@@ -1,0 +1,25 @@
+@page
+@model AIVES.Ass2.Razor.Pages.Subjects.IndexModel
+@{
+    ViewData["Title"] = "Môn học và phân công";
+}
+<div class="mb-4"><h1 class="h3">Môn học và phân công</h1><p class="text-muted mb-0">Quản lý giảng viên, ngôn ngữ và ngân hàng câu hỏi theo môn.</p></div>
+<div class="card shadow-sm"><div class="table-responsive">
+    <table class="table align-middle mb-0">
+        <thead class="table-light"><tr><th scope="col">Mã môn</th><th scope="col">Tên môn</th><th scope="col">Nhận dạng (STT)</th><th scope="col">Đọc (TTS)</th><th scope="col">Giảng viên</th><th scope="col">Thao tác</th></tr></thead>
+        <tbody>
+        @if (Model.Subjects.Count == 0)
+        {
+            <tr><td colspan="6" class="text-center text-muted py-4">Chưa có môn học.</td></tr>
+        }
+        @foreach (var s in Model.Subjects)
+        {
+            <tr class="@(s.IsActive ? "" : "table-secondary text-muted")">
+                <td class="fw-semibold">@s.Code @if (!s.IsActive) { <span class="badge text-bg-secondary ms-1">Đã ngừng</span> }</td>
+                <td>@s.Name</td><td>@s.SttLanguage.ToLocaleCode()</td><td>@s.TtsLanguage.ToLocaleCode()</td><td>@s.LecturerCount</td>
+                <td><a asp-page="Details" asp-route-id="@s.Id" class="btn btn-sm btn-outline-primary">Chi tiết</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div></div>
