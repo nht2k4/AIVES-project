@@ -1,0 +1,22 @@
+@page
+@model AIVES.Ass2.Razor.Pages.MySubjects.IndexModel
+@{
+    ViewData["Title"] = "Môn của tôi";
+}
+<div class="mb-4"><h1 class="h3">Môn của tôi</h1><p class="text-muted mb-0">Các môn học bạn được phân công giảng dạy.</p></div>
+<div class="card shadow-sm"><div class="table-responsive"><table class="table align-middle mb-0">
+    <thead class="table-light"><tr><th scope="col">Mã môn</th><th scope="col">Tên môn</th><th scope="col">Nhận dạng (STT)</th><th scope="col">Đọc (TTS)</th><th scope="col">Thao tác</th></tr></thead>
+    <tbody>
+    @if (Model.Subjects.Count == 0)
+    {
+        <tr><td colspan="5" class="text-center text-muted py-4">Bạn chưa được phân công môn học nào.</td></tr>
+    }
+    @foreach (var s in Model.Subjects)
+    {
+        <tr class="@(s.IsActive ? "" : "table-secondary text-muted")">
+            <td class="fw-semibold">@s.Code @if (!s.IsActive) { <span class="badge text-bg-secondary">Đã ngừng</span> }</td><td>@s.Name</td><td>@s.SttLanguage.ToLocaleCode()</td><td>@s.TtsLanguage.ToLocaleCode()</td>
+            <td><div class="d-flex flex-wrap gap-2"><a asp-page="/Language/Edit" asp-route-subjectId="@s.Id" class="btn btn-sm btn-outline-primary">Đổi ngôn ngữ</a><a asp-page="/Exams/Questions" asp-route-subjectId="@s.Id" class="btn btn-sm btn-outline-secondary">Câu hỏi</a></div></td>
+        </tr>
+    }
+    </tbody>
+</table></div></div>

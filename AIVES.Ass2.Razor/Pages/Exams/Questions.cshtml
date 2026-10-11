@@ -1,0 +1,64 @@
+@page
+@model AIVES.Ass2.Razor.Pages.Exams.QuestionsModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    Layout = "/Pages/Shared/_TV5Layout.cshtml";
+    ViewData["Title"] = "Ngân hàng câu hỏi";
+}
+@if (Model.IsAdmin)
+{
+    <a asp-page="/Subjects/Details" asp-route-id="@Model.Subject.Id" class="small">Quay lại chi tiết môn học</a>
+}
+else
+{
+    <a asp-page="/MySubjects/Index" class="small">Quay lại Môn của tôi</a>
+}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 my-3">
+    <div><h1 class="h3 mb-1">Ngân hàng câu hỏi</h1><p class="text-muted mb-0">@Model.Subject.Code — @Model.Subject.Name</p></div>
+    <span class="badge text-bg-light border">@Model.Questions.Count câu hỏi</span>
+</div>
+<div asp-validation-summary="All" class="text-danger mb-3" role="alert"></div>
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Danh sách câu hỏi</div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light"><tr><th scope="col">Nội dung</th><th scope="col">Ý chính trả lời</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead>
+                    <tbody>
+                    @if (Model.Questions.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-muted text-center py-4">Chưa có câu hỏi. Thêm câu hỏi đầu tiên ở form bên cạnh.</td></tr>
+                    }
+                    @foreach (var q in Model.Questions)
+                    {
+                        <tr class="@(q.IsActive ? "" : "table-secondary text-muted")">
+                            <td class="tv5-text">@q.Content</td><td class="tv5-text">@(q.ExpectedPoints ?? "—")</td>
+                            <td><span class="badge @(q.IsActive ? "text-bg-success" : "text-bg-secondary")">@(q.IsActive ? "Đang dùng" : "Đã tắt")</span></td>
+                            <td>
+                                <form method="post" asp-page-handler="SetActive" asp-route-subjectId="@Model.Subject.Id">
+                                    <input type="hidden" name="questionId" value="@q.Id" />
+                                    <input type="hidden" name="isActive" value="@((!q.IsActive).ToString().ToLowerInvariant())" />
+                                    <button type="submit" class="btn btn-sm @(q.IsActive ? "btn-outline-secondary" : "btn-outline-success")" aria-label="@(q.IsActive ? "Tắt" : "Bật") câu hỏi @q.Id">@(q.IsActive ? "Tắt" : "Bật")</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Thêm câu hỏi</div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="Add" asp-route-subjectId="@Model.Subject.Id">
+                    <div class="mb-3"><label asp-for="Content" class="form-label">Nội dung câu hỏi</label><textarea asp-for="Content" rows="5" maxlength="1000" class="form-control" aria-describedby="content-help" required></textarea><span asp-validation-for="Content" class="text-danger"></span><div id="content-help" class="form-text">Tối đa 1000 ký tự.</div></div>
+                    <div class="mb-3"><label asp-for="ExpectedPoints" class="form-label">Ý chính trả lời</label><textarea asp-for="ExpectedPoints" rows="4" maxlength="1000" class="form-control" aria-describedby="points-help"></textarea><span asp-validation-for="ExpectedPoints" class="text-danger"></span><div id="points-help" class="form-text">Không bắt buộc, tối đa 1000 ký tự. Ngăn cách các ý bằng dấu ;, ví dụ: a;b.</div></div>
+                    <button type="submit" class="btn btn-primary w-100">Thêm câu hỏi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
