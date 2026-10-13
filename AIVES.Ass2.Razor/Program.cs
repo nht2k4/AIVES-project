@@ -38,15 +38,18 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Events.OnValidatePrincipal = async context =>
         {
             var rawId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!int.TryParse(rawId, out var accountId))
+            if (!int.TryParse(rawId, out var accountId) || accountId <= 0)
             {
                 context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 return;
             }
 
             var auth = context.HttpContext.RequestServices.GetRequiredService<IAuthService>();
             var role = await auth.GetActiveRoleAsync(accountId);
-            if (role is null)
+            // Yêu cầu đăng nhập lại nếu tài khoản bị khóa, về Pending hoặc đổi vai trò.
+            // Cookie cũ không được tiếp tục giữ quyền đã bị thu hồi.
+            if (role is null || context.Principal?.FindFirstValue(ClaimTypes.Role) != role)
             {
                 context.RejectPrincipal();
                 await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);

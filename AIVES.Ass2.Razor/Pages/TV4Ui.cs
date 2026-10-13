@@ -1,14 +1,9 @@
 using AIVES.Business.Models;
+using AIVES.Ass2.Razor.Infrastructure;
 
 namespace AIVES.Ass2.Razor.Pages;
 
 public static class TV4Ui
 {
-    public static string RoleName(AppRole role) => role switch
-    {
-        AppRole.Admin => "Quản trị viên",
-        AppRole.Lecturer => "Giảng viên",
-        AppRole.Pending => "Chờ cấp quyền",
-        _ => role.ToString()
-    };
+    public static string RoleName(AppRole role) => role.GetDisplayName();
 }
