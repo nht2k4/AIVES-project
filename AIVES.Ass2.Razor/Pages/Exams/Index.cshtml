@@ -4,7 +4,10 @@
     ViewData["Title"] = "Phiên thi";
 }
 
-<h1 class="h3 mb-2">Phiên thi</h1>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+    <h1 class="h3 mb-0">Phiên thi</h1>
+    <a asp-page="Create" class="btn btn-primary">Tạo phiên thi</a>
+</div>
 <p class="text-muted mb-4">Danh sách phiên thi thuộc các môn học bạn được phép quản lý.</p>
 
 <div id="exam-list" data-live="exams">

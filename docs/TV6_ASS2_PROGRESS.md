@@ -10,11 +10,11 @@ Phạm vi: mục A2 / TV6, hợp đồng A3.3–A3.4 và checklist A, E, S trong
 - Thêm mục Phiên thi trên layout chung cho Admin/Giảng viên.
 - Thêm `/Exams`: gọi `IExamService.GetListAsync(CurrentUserId)`, hiển thị môn, giờ bắt đầu, số thí sinh, trạng thái và trường hợp rỗng.
 - Đặt toàn bộ danh sách trong `exam-list` / `data-live="exams"` để dùng `live.js` hiện có.
-- Nút Tạo và liên kết Chi tiết được bổ sung ở đợt có trang đích tương ứng.
+- Nút Tạo được bổ sung ở đợt 2; liên kết Chi tiết được bổ sung ở đợt 3.
 
 Commit đề xuất: `feat(TV6): complete web foundation and exam list`
 
-## Đợt 2 — Tạo phiên thi
+## Đợt 2 — Tạo phiên thi (đã triển khai)
 
 - Thêm `Pages/Exams/Create` và nút Tạo trên danh sách.
 - Chỉ lấy môn được phép từ Service; mặc định sáng mai 08:00, các số 10/3/4/2/60.
@@ -22,6 +22,14 @@ Commit đề xuất: `feat(TV6): complete web foundation and exam list`
 - Sau khi tạo thành công gửi topic `exams`. Trước khi có trang Chi tiết, chuyển về danh sách.
 
 Commit đề xuất: `feat(TV6): add exam creation and live notification`
+
+File chính: `Pages/Exams/Create.cshtml`, `Create.cshtml.cs`; nút Tạo nằm trong `Pages/Exams/Index.cshtml`.
+
+Form dùng DataAnnotations và HTML required/min/max để báo lỗi nhập liệu; PageModel gọi `IExamService` để kiểm tra quyền, thời gian quá khứ, MSSV thiếu/trùng và số câu hỏi. Khi lỗi validation, giữ dữ liệu nhập và nạp lại danh sách môn. Lỗi quyền/không tồn tại ánh xạ về 403/404. Chỉ gửi `changed("exams", ...)` sau khi Service tạo thành công; thông báo không chứa thông tin sinh viên.
+
+Kiểm tra riêng cho TV6: `dotnet test tools/TV6.Verify/TV6.Verify.csproj`. Dùng PageModel và ExamService thật với repository trong bộ nhớ, kiểm tra dữ liệu mặc định, danh sách môn được phép, tạo lịch ba sinh viên, lỗi form/nghiệp vụ, 403/404 và thứ tự lưu trước khi gửi SignalR. Bộ này không thay thế kiểm thử trình duyệt, cookie, antiforgery hoặc kết nối SignalR thật.
+
+Kết quả đợt 2: build project kiểm tra và các project ứng dụng được tham chiếu thành công (0 warning, 0 error); đạt **11/11 test**, không bỏ qua test nào. Chưa kiểm tra SQL Server và hai trình duyệt.
 
 ## Đợt 3 — Chi tiết và thao tác phiên thi
 
