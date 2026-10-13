@@ -35,7 +35,7 @@
                         @foreach (var exam in Model.Exams)
                         {
                             <tr>
-                                <td class="fw-semibold">@exam.Title</td>
+                                <td class="fw-semibold"><a asp-page="Details" asp-route-id="@exam.Id">@exam.Title</a></td>
                                 <td>@exam.SubjectCode — @exam.SubjectName</td>
                                 <td class="text-nowrap">@exam.StartTime.ToString("dd/MM/yyyy HH:mm")</td>
                                 <td>@exam.ParticipantCount</td>

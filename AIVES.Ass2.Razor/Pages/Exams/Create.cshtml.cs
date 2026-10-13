@@ -91,7 +91,7 @@ public class CreateModel(IExamService exams, IHubContext<LiveHub> live) : AppPag
         // Chỉ gửi sau khi lưu thành công; thông điệp không chứa thông tin phiên thi/thí sinh.
         await live.NotifyAsync("Đã tạo phiên thi mới.", LiveTopics.Exams);
         FlashSuccess("Đã tạo phiên thi.");
-        return RedirectToPage("./Index");
+        return RedirectToPage("./Details", new { id = result.Data });
     }
 
     private async Task LoadSubjectsAsync() => Subjects = await exams.GetSubjectsForExamAsync(CurrentUserId);
