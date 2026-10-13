@@ -71,8 +71,9 @@ public class CreateChecks
     {
         var page = CreatePage(out _);
         var response = Assert.IsType<RedirectToPageResult>(await page.OnPostAsync());
-        Assert.Equal("./Index", response.PageName);
+        Assert.Equal("./Details", response.PageName);
         var session = Assert.Single(db.Sessions);
+        Assert.Equal(session.Id, response.RouteValues!["id"]);
         var people = session.ExamParticipants.OrderBy(p => p.SlotStart).ToArray();
         Assert.Equal(3, people.Length);
         for (var i = 0; i < people.Length; i++)
@@ -148,20 +149,20 @@ public class CreateChecks
         Assert.Empty(hub.Client.Messages);
     }
 
-    private sealed class MemoryTempData : ITempDataProvider
+    internal sealed class MemoryTempData : ITempDataProvider
     {
         public IDictionary<string, object> LoadTempData(HttpContext context) => new Dictionary<string, object>();
         public void SaveTempData(HttpContext context, IDictionary<string, object> values) { }
     }
 
-    private sealed class RecordingHub : IHubContext<LiveHub>
+    internal sealed class RecordingHub : IHubContext<LiveHub>
     {
         public RecordingClient Client { get; } = new();
         public IHubClients Clients => new BroadcastClients(Client);
         public IGroupManager Groups => throw new NotSupportedException();
     }
 
-    private sealed class RecordingClient : IClientProxy
+    internal sealed class RecordingClient : IClientProxy
     {
         public List<(string Method, object?[] Args)> Messages { get; } = new();
         public Action? OnSend { get; set; }
