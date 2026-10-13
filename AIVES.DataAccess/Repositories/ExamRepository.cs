@@ -1,5 +1,6 @@
 using AIVES.DataAccess.Entities;
 using AIVES.DataAccess.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace AIVES.DataAccess.Repositories;
 
@@ -10,11 +11,38 @@ public class ExamRepository : IExamRepository
 
     public ExamRepository(AppDbContext context) => _context = context;
 
-    public Task<List<ExamSession>> GetListAsync(IReadOnlyCollection<int>? subjectIds) => throw new NotImplementedException();
+    public async Task<List<ExamSession>> GetListAsync(IReadOnlyCollection<int>? subjectIds)
+    {
+        if (subjectIds is { Count: 0 })
+            return new List<ExamSession>();
 
-    public Task<ExamSession?> GetDetailAsync(int id) => throw new NotImplementedException();
+        var query = _context.ExamSessions.AsNoTracking()
+            .Include(e => e.Subject)
+            .Include(e => e.ExamParticipants)
+            .AsQueryable();
 
-    public Task AddAsync(ExamSession session) => throw new NotImplementedException();
+        if (subjectIds is not null)
+            query = query.Where(e => subjectIds.Contains(e.SubjectId));
 
-    public Task SaveAsync() => throw new NotImplementedException();
+        return await query
+            .OrderByDescending(e => e.CreatedAt)
+            .ThenByDescending(e => e.Id)
+            .ToListAsync();
+    }
+
+    public Task<ExamSession?> GetDetailAsync(int id) =>
+        _context.ExamSessions
+            .Include(e => e.Subject)
+            .Include(e => e.ExamParticipants)
+                .ThenInclude(p => p.ParticipantQuestions)
+                    .ThenInclude(pq => pq.Question)
+            .FirstOrDefaultAsync(e => e.Id == id);
+
+    public async Task AddAsync(ExamSession session)
+    {
+        _context.ExamSessions.Add(session);
+        await _context.SaveChangesAsync();
+    }
+
+    public Task SaveAsync() => _context.SaveChangesAsync();
 }
