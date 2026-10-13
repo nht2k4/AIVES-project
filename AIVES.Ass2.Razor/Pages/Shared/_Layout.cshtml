@@ -1,0 +1,70 @@
+@using AIVES.Business.Interfaces
+@using AIVES.Business.Models
+@inject IAccountService AccountService
+@{
+    var pendingCount = 0;
+    if (User.IsInRole(Roles.Admin))
+        pendingCount = (await AccountService.SearchAsync(null, AppRole.Pending)).Count;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - AIVES</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <style>
+        body { background: #f6f8fb; color: #20304a; }
+        .navbar { background: #14335c; }
+        .navbar-brand, .navbar .nav-link, .navbar .navbar-text { color: #fff; }
+        .navbar .nav-link:hover { color: #d4e4ff; }
+        .card { border-color: #e1e7ef; border-radius: .75rem; overflow: hidden; }
+        .card-header { padding: 1rem; }
+        .table td, .table th { padding: .9rem 1rem; }
+        .tv4-form { max-width: 660px; }
+        .validation-summary-valid, .field-validation-valid { display: none; }
+    </style>
+</head>
+<body>
+    <nav class="navbar mb-4" aria-label="Điều hướng chính">
+        <div class="container d-flex flex-wrap gap-3 align-items-center">
+            <a class="navbar-brand fw-bold" href="~/">AIVES</a>
+            <div class="d-flex flex-wrap gap-3 me-auto">
+                @if (User.IsInRole(Roles.Admin))
+                {
+                    <a asp-page="/Accounts/Index" class="nav-link">Tài khoản</a>
+                    <a asp-page="/Subjects/Index" class="nav-link">Môn học và phân công</a>
+                }
+                @if (User.IsInRole(Roles.Lecturer))
+                {
+                    <a asp-page="/MySubjects/Index" class="nav-link">Môn của tôi</a>
+                }
+            </div>
+            @if (User.IsInRole(Roles.Admin))
+            {
+                <div id="pending-count" data-live="accounts">
+                    @if (pendingCount > 0)
+                    {
+                        <span class="badge text-bg-warning">@pendingCount tài khoản chờ cấp quyền</span>
+                    }
+                </div>
+            }
+            <span class="navbar-text small">@User.Identity?.Name</span>
+            <form asp-page="/Auth/Logout" method="post" class="m-0">
+                <button type="submit" class="btn btn-sm btn-outline-light">Đăng xuất</button>
+            </form>
+        </div>
+    </nav>
+    <main class="container pb-5">
+        <partial name="_Alerts" />
+        @RenderBody()
+    </main>
+    <footer class="container small text-muted pb-4">AIVES · Hệ thống vấn đáp</footer>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+        <script src="~/js/live.js" asp-append-version="true"></script>
+    }
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
