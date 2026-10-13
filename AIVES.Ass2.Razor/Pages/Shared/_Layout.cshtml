@@ -39,6 +39,10 @@
                 {
                     <a asp-page="/MySubjects/Index" class="nav-link">Môn của tôi</a>
                 }
+                @if (User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Lecturer))
+                {
+                    <a asp-page="/Exams/Index" class="nav-link">Phiên thi</a>
+                }
             </div>
             @if (User.IsInRole(Roles.Admin))
             {

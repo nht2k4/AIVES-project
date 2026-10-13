@@ -1,0 +1,60 @@
+@page
+@model AIVES.Ass2.Razor.Pages.Exams.IndexModel
+@{
+    ViewData["Title"] = "Phiên thi";
+}
+
+<h1 class="h3 mb-2">Phiên thi</h1>
+<p class="text-muted mb-4">Danh sách phiên thi thuộc các môn học bạn được phép quản lý.</p>
+
+<div id="exam-list" data-live="exams">
+    @if (Model.Exams.Count == 0)
+    {
+        <div class="alert alert-info" role="status">Chưa có phiên thi nào...</div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header bg-white">Tổng cộng: @Model.Exams.Count phiên thi</div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <caption class="visually-hidden">Danh sách phiên thi được phép quản lý</caption>
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">Phiên thi</th>
+                            <th scope="col">Môn học</th>
+                            <th scope="col">Bắt đầu</th>
+                            <th scope="col">Số thí sinh</th>
+                            <th scope="col">Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var exam in Model.Exams)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@exam.Title</td>
+                                <td>@exam.SubjectCode — @exam.SubjectName</td>
+                                <td class="text-nowrap">@exam.StartTime.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@exam.ParticipantCount</td>
+                                <td>
+                                    @if (exam.Status == ExamStatuses.Open)
+                                    {
+                                        <span class="badge text-bg-success">Đang mở</span>
+                                    }
+                                    else if (exam.Status == ExamStatuses.Closed)
+                                    {
+                                        <span class="badge text-bg-secondary">Đã đóng</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-bg-light">@exam.Status</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
