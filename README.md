@@ -114,3 +114,17 @@ Mặc định .NET cho phép WebMVC "nhìn thấy" DataAccess qua tham chiếu b
 ```
 
 Nếu sau khi thêm mà lệnh scaffold báo lỗi, bỏ dòng này đi. Bản hiện tại đã tuân thủ quy tắc bằng cách viết code, không cần dòng này để chạy.
+
+## 6. Lộ trình mở rộng sang Assignment 2 & 3
+
+Dự án AIVES được phát triển theo lộ trình 3 giai đoạn độc lập:
+
+- **Assignment 1 (Nhánh `main`):** Khởi tạo nền tảng quản trị hệ thống (Chức năng 7) trên nền ASP.NET Core MVC, kiến trúc 3 lớp, Database First, xác thực Cookie.
+- **Assignment 2 (Nhánh `assignment-2`):**
+  - Chuyển đổi giao diện sang **ASP.NET Core Razor Pages** (`AIVES.Ass2.Razor`).
+  - Tích hợp **Chức năng 2 (Tổ chức thi & Ngân hàng câu hỏi):** Quản lý phiên thi, thuật toán `QuestionAllocator` chia bộ câu hỏi không trùng cho 2 thí sinh liền kề (`pool >= 2 * perStudent`).
+  - Nâng cấp **Chức năng 7:** Hỗ trợ tính năng tự đăng ký (`/Auth/Register`), tài khoản mặc định ở trạng thái `Pending` (Chờ cấp quyền).
+  - Tích hợp **SignalR (`LiveHub` tại `/hubs/live`):** Đồng bộ trực tiếp thay đổi tài khoản và trạng thái phiên thi thời gian thực (`data-live`).
+- **Assignment 3 (Nhánh `assignment-3`):**
+  - Trở lại kiến trúc MVC, hoàn thiện toàn diện **Chức năng 7 + 2 + 3 (Lõi phỏng vấn AI)**.
+  - Tích hợp giám khảo AI hỏi xoáy (DeepSeek API + luật fallback), giọng đọc tiếng Việt cục bộ **VieNeu-TTS** (streaming PCM s16le 48 kHz qua Web Audio) và nhận diện giọng nói STT (Web Speech API).
