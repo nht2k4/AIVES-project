@@ -126,5 +126,10 @@ Dự án AIVES được phát triển theo lộ trình 3 giai đoạn độc l�
   - Nâng cấp **Chức năng 7:** Hỗ trợ tính năng tự đăng ký (`/Auth/Register`), tài khoản mặc định ở trạng thái `Pending` (Chờ cấp quyền).
   - Tích hợp **SignalR (`LiveHub` tại `/hubs/live`):** Đồng bộ trực tiếp thay đổi tài khoản và trạng thái phiên thi thời gian thực (`data-live`).
 - **Assignment 3 (Nhánh `assignment-3`):**
-  - Trở lại kiến trúc MVC, hoàn thiện toàn diện **Chức năng 7 + 2 + 3 (Lõi phỏng vấn AI)**.
-  - Tích hợp giám khảo AI hỏi xoáy (DeepSeek API + luật fallback), giọng đọc tiếng Việt cục bộ **VieNeu-TTS** (streaming PCM s16le 48 kHz qua Web Audio) và nhận diện giọng nói STT (Web Speech API).
+- **Assignment 3 (Nhánh `assignment-3`):**
+  - Trở lại kiến trúc MVC kết hợp **RESTful Web API** chuẩn hóa (`ApiControllerBase`, Swagger UI tích hợp).
+  - Hoàn thiện toàn diện **Chức năng 7 + 2 + 3 (Lõi phỏng vấn AI)** với 217 bài test Business và 68 bài test SQL.
+  - Tích hợp giám khảo AI hỏi xoáy (**DeepSeek Chat API** kết hợp cơ chế fallback rule-based khi mất mạng), giọng đọc tiếng Việt cục bộ **VieNeu-TTS** (streaming âm thanh PCM s16le 48 kHz qua Web Audio API) và nhận diện giọng nói STT (Web Speech API kèm hỗ trợ từ điển thuật ngữ chuyên ngành `SttTerms`).
+  - Hỗ trợ kiểm thử tự động toàn diện qua bộ 85 kịch bản gọi API trong `ass3.http`.
+
+> Chi tiết phân công công việc cụ thể cho từng thành viên và hợp đồng kỹ thuật cho từng bài tập được lưu trữ tại [Tài liệu kế hoạch & phân công Ass2 - Ass3](docs/AIVES_KeHoach_PhanCong_Ass2_Ass3.md).
