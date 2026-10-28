@@ -148,11 +148,71 @@ public class ExamService : IExamService
         await _exams.AddAsync(session);
         return ServiceResult<int>.Ok(session.Id);
     }
-    public Task<ServiceResult<ExamDetailDto>> GetDetailAsync(int currentUserId, int examId) => throw new NotImplementedException();
+    public async Task<ServiceResult<ExamDetailDto>> GetDetailAsync(int currentUserId, int examId)
+    {
+        var exam = await _exams.GetDetailAsync(examId);
+        if (exam is null)
+            return ServiceResult<ExamDetailDto>.NotFound("Không tìm thấy phiên thi.");
+        if (!await _assignmentService.CanAccessSubjectAsync(currentUserId, exam.SubjectId))
+            return ServiceResult<ExamDetailDto>.Forbidden("Bạn chưa được phân công môn học của phiên thi này.");
 
-    public Task<ServiceResult> SetOpenAsync(int currentUserId, int examId, bool open) => throw new NotImplementedException();
+        var participants = exam.ExamParticipants
+            .OrderBy(p => p.SlotStart)
+            .Select(p => new ParticipantDto(
+                p.Id, p.StudentCode, p.FullName, p.SlotStart, p.SlotEnd, p.Status,
+                p.ParticipantQuestions.OrderBy(q => q.OrderNo).Select(q => q.Question.Content).ToList()))
+            .ToList();
 
-    public Task<ServiceResult> ReallocateAsync(int currentUserId, int examId) => throw new NotImplementedException();
+        return ServiceResult<ExamDetailDto>.Ok(new ExamDetailDto(
+            exam.Id, exam.SubjectId, exam.Subject.Code, exam.Subject.Name, exam.Title,
+            exam.StartTime, exam.SlotMinutes, exam.MainQuestionCount,
+            exam.MaxFollowUps, exam.MaxFollowUpsPerQuestion, exam.AnswerSeconds, exam.Status,
+            participants));
+    }
+
+    public async Task<ServiceResult> SetOpenAsync(int currentUserId, int examId, bool open)
+    {
+        var exam = await _exams.GetDetailAsync(examId);
+        if (exam is null)
+            return ServiceResult.NotFound("Không tìm thấy phiên thi.");
+        if (!await _assignmentService.CanAccessSubjectAsync(currentUserId, exam.SubjectId))
+            return ServiceResult.Forbidden("Bạn chưa được phân công môn học của phiên thi này.");
+
+        exam.Status = open ? ExamStatuses.Open : ExamStatuses.Closed;
+        await _exams.SaveAsync();
+        return ServiceResult.Ok();
+    }
+
+    public async Task<ServiceResult> ReallocateAsync(int currentUserId, int examId)
+    {
+        var exam = await _exams.GetDetailAsync(examId);
+        if (exam is null)
+            return ServiceResult.NotFound("Không tìm thấy phiên thi.");
+        if (!await _assignmentService.CanAccessSubjectAsync(currentUserId, exam.SubjectId))
+            return ServiceResult.Forbidden("Bạn chưa được phân công môn học của phiên thi này.");
+
+        if (exam.ExamParticipants.Any(p => p.Status != ParticipantStatuses.Scheduled))
+            return ServiceResult.Fail("Đã có thí sinh bắt đầu thi, không thể chọn lại bộ câu hỏi.");
+
+        var pool = (await _questions.GetBySubjectAsync(exam.SubjectId, true)).Select(q => q.Id).ToList();
+        if (pool.Count < exam.MainQuestionCount)
+            return ServiceResult.Fail(
+                $"Ngân hàng câu hỏi chỉ có {pool.Count} câu đang dùng, cần ít nhất {exam.MainQuestionCount} câu.");
+
+        var people = exam.ExamParticipants.OrderBy(p => p.SlotStart).ToList();
+        var sets = QuestionAllocator.Allocate(pool, people.Count, exam.MainQuestionCount, new Random());
+
+        // Bộ cũ và bộ mới có thể trùng khóa (thí sinh, câu hỏi): xóa bộ cũ và lưu trước, rồi mới thêm bộ mới
+        foreach (var p in people)
+            p.ParticipantQuestions.Clear();
+        await _exams.SaveAsync();
+
+        for (var i = 0; i < people.Count; i++)
+            AddQuestionSet(people[i], sets[i]);
+        await _exams.SaveAsync();
+
+        return ServiceResult.Ok();
+    }
     private static void AddQuestionSet(ExamParticipant participant, int[] questionIds)
     {
         for (var i = 0; i < questionIds.Length; i++)
