@@ -24,10 +24,19 @@ public class AccountService : IAccountService
         _hasher = hasher;
     }
 
-    public Task<List<AccountDto>> SearchAsync(string? keyword, AppRole? role) => throw new NotImplementedException();
+    public async Task<List<AccountDto>> SearchAsync(string? keyword, AppRole? role)
+    {
+        var accounts = await _accounts.SearchAsync(keyword, role?.ToString());
+        return accounts.Select(a => a.ToDto()).ToList();
+    }
 
-    public Task<ServiceResult<AccountDto>> GetByIdAsync(int id) => throw new NotImplementedException();
-
+    public async Task<ServiceResult<AccountDto>> GetByIdAsync(int id)
+    {
+        var account = await _accounts.GetByIdAsync(id);
+        return account is null
+            ? ServiceResult<AccountDto>.NotFound("Không tìm thấy tài khoản.")
+            : ServiceResult<AccountDto>.Ok(account.ToDto());
+    }
     public Task<ServiceResult<int>> CreateAsync(CreateAccountRequest request) => throw new NotImplementedException();
 
     public Task<ServiceResult<int>> RegisterAsync(RegisterRequest request) => throw new NotImplementedException();
