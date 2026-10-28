@@ -39,5 +39,13 @@ public class AuthService : IAuthService
             new LoginResult(account.Id, account.FullName, account.Email, role));
     }
 
-    public Task<string?> GetActiveRoleAsync(int accountId) => throw new NotImplementedException();
+    public async Task<string?> GetActiveRoleAsync(int accountId)
+    {
+        var account = await _accounts.GetByIdAsync(accountId);
+        if (account is not { IsActive: true })
+            return null;
+
+        var role = Mapper.ParseRole(account.Role);
+        return role == AppRole.Pending ? null : role.ToString();
+    }
 }
