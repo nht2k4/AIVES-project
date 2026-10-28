@@ -24,5 +24,25 @@ public class SubjectService : ISubjectService
     public async Task<List<SubjectDto>> GetByLecturerAsync(int lecturerId) =>
         (await _subjects.GetByLecturerAsync(lecturerId)).Select(s => s.ToDto()).ToList();
 
-    public Task<ServiceResult<SubjectDetailDto>> GetDetailAsync(int subjectId) => throw new NotImplementedException();
+    public async Task<ServiceResult<SubjectDetailDto>> GetDetailAsync(int subjectId)
+    {
+        var subject = await _subjects.GetWithLecturersAsync(subjectId);
+        if (subject is null)
+            return ServiceResult<SubjectDetailDto>.NotFound("Không tìm thấy môn học.");
+
+        var assigned = subject.LecturerSubjects
+            .OrderBy(ls => ls.Lecturer.FullName)
+            .Select(ls => new AssignedLecturerDto(
+                ls.LecturerId, ls.Lecturer.FullName, ls.Lecturer.Email, ls.Lecturer.IsActive, ls.AssignedAt))
+            .ToList();
+
+        var assignedIds = assigned.Select(a => a.Id).ToHashSet();
+
+        var available = (await _accounts.GetActiveByRoleAsync(Roles.Lecturer))
+            .Where(a => !assignedIds.Contains(a.Id))
+            .Select(a => new LecturerOptionDto(a.Id, a.FullName, a.Email))
+            .ToList();
+
+        return ServiceResult<SubjectDetailDto>.Ok(new SubjectDetailDto(subject.ToDto(), assigned, available));
+    }
 }
