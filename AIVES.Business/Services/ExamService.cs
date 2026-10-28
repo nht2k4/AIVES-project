@@ -74,4 +74,48 @@ public class ExamService : IExamService
     public Task<ServiceResult> SetOpenAsync(int currentUserId, int examId, bool open) => throw new NotImplementedException();
 
     public Task<ServiceResult> ReallocateAsync(int currentUserId, int examId) => throw new NotImplementedException();
+    private static void AddQuestionSet(ExamParticipant participant, int[] questionIds)
+    {
+        for (var i = 0; i < questionIds.Length; i++)
+            participant.ParticipantQuestions.Add(new ParticipantQuestion { QuestionId = questionIds[i], OrderNo = i + 1 });
+    }
+
+    // Mỗi dòng một sinh viên; dấu ngăn đầu tiên gặp là ';' ',' tab hoặc khoảng trắng
+    private static ServiceResult<List<(string Code, string Name)>> ParseStudents(string? text)
+    {
+        var result = new List<(string Code, string Name)>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var lines = (text ?? string.Empty).Split('\n');
+
+        for (var i = 0; i < lines.Length; i++)
+        {
+            var line = lines[i].Trim();
+            if (line.Length == 0) continue;
+
+            var idx = line.IndexOfAny(new[] { ';', ',', '\t', ' ' });
+            if (idx <= 0)
+                return ServiceResult<List<(string, string)>>.Fail($"Dòng {i + 1}: thiếu họ tên. Mỗi dòng có dạng \"MSSV; Họ tên\".");
+
+            var code = line[..idx];
+            var name = line[idx..].TrimStart(' ', ';', ',', '\t').Trim();
+
+            if (name.Length == 0)
+                return ServiceResult<List<(string, string)>>.Fail($"Dòng {i + 1}: thiếu họ tên.");
+            if (code.Length > 30)
+                return ServiceResult<List<(string, string)>>.Fail($"Dòng {i + 1}: mã sinh viên tối đa 30 ký tự.");
+            if (name.Length > 100)
+                return ServiceResult<List<(string, string)>>.Fail($"Dòng {i + 1}: họ tên tối đa 100 ký tự.");
+            if (!seen.Add(code))
+                return ServiceResult<List<(string, string)>>.Fail($"Dòng {i + 1}: mã sinh viên {code} bị trùng trong danh sách.");
+
+            result.Add((code, name));
+        }
+
+        if (result.Count == 0)
+            return ServiceResult<List<(string, string)>>.Fail("Danh sách sinh viên không được để trống.");
+        if (result.Count > 200)
+            return ServiceResult<List<(string, string)>>.Fail("Danh sách sinh viên tối đa 200 người.");
+
+        return ServiceResult<List<(string, string)>>.Ok(result);
+    }
 }
