@@ -32,8 +32,32 @@ public class LanguageConfigService : ILanguageConfigService
         return ServiceResult<LanguageConfigDto>.Ok(subject.ToLanguageDto());
     }
 
-    public Task<ServiceResult> UpdateAsync(int currentUserId, UpdateLanguageRequest request) => throw new NotImplementedException();
+    public async Task<ServiceResult> UpdateAsync(int currentUserId, UpdateLanguageRequest request)
+    {
+        if (!Enum.IsDefined(request.SttLanguage) || !Enum.IsDefined(request.TtsLanguage))
+            return ServiceResult.Fail("Ngôn ngữ không hợp lệ. Chỉ hỗ trợ Tiếng Việt và English.");
 
+        var subject = await _subjects.GetByIdAsync(request.SubjectId);
+        if (subject is null)
+            return ServiceResult.NotFound("Không tìm thấy môn học.");
+
+        // Kiểm tra quyền ở tầng Business, không chỉ dựa vào [Authorize] ở Controller
+        if (!await _assignmentService.CanAccessSubjectAsync(currentUserId, request.SubjectId))
+            return ServiceResult.Forbidden("Bạn chưa được phân công môn học này.");
+
+        if (!subject.IsActive)
+            return ServiceResult.Fail($"Môn {subject.Code} đã ngừng hoạt động, không thể đổi cấu hình.");
+
+        var actor = await _accounts.GetByIdAsync(currentUserId);
+
+        subject.SttLanguage = request.SttLanguage.ToLocaleCode();
+        subject.TtsLanguage = request.TtsLanguage.ToLocaleCode();
+        subject.LanguageUpdatedAt = DateTime.UtcNow;
+        subject.LanguageUpdatedBy = actor?.Email;
+
+        await _subjects.UpdateAsync(subject);
+        return ServiceResult.Ok();
+    }
     public async Task<ServiceResult<SpeechConfig>> GetSpeechConfigAsync(int subjectId)
     {
         var subject = await _subjects.GetByIdAsync(subjectId);
