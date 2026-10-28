@@ -17,6 +17,13 @@ internal static class Mapper
             AppLanguageExtensions.FromLocaleCode(s.TtsLanguage),
             s.LecturerSubjects.Count);
 
+    public static LanguageConfigDto ToLanguageDto(this Subject s) =>
+        new(s.Id, s.Code, s.Name,
+            AppLanguageExtensions.FromLocaleCode(s.SttLanguage),
+            AppLanguageExtensions.FromLocaleCode(s.TtsLanguage),
+            s.LanguageUpdatedAt, s.LanguageUpdatedBy,
+            s.TtsVoice, s.SttTerms, s.AiTimeoutSeconds, s.UseExternalAi);
+
     public static AppRole ParseRole(string role) =>
         Enum.TryParse<AppRole>(role, out var parsed) && Enum.IsDefined(parsed) ? parsed : AppRole.Pending;
 }
