@@ -37,10 +37,66 @@ public class AccountService : IAccountService
             ? ServiceResult<AccountDto>.NotFound("Không tìm thấy tài khoản.")
             : ServiceResult<AccountDto>.Ok(account.ToDto());
     }
-    public Task<ServiceResult<int>> CreateAsync(CreateAccountRequest request) => throw new NotImplementedException();
+    public Task<ServiceResult<int>> CreateAsync(CreateAccountRequest request) =>
+     CreateCoreAsync(request.FullName, request.Email, request.Password, request.Role, request.StudentCode);
 
-    public Task<ServiceResult<int>> RegisterAsync(RegisterRequest request) => throw new NotImplementedException();
+    // Tự đăng ký: cùng luật như tạo tài khoản, nhưng vai trò luôn là Pending
+    public Task<ServiceResult<int>> RegisterAsync(RegisterRequest request) =>
+        CreateCoreAsync(request.FullName, request.Email, request.Password, AppRole.Pending, null);
 
+    // Sinh viên: bắt buộc có mã (trim, không rỗng, <= 30). Trả về lỗi (null nghĩa là hợp lệ).
+    private static string? CheckStudentCode(string? raw, out string? code)
+    {
+        code = raw?.Trim();
+        if (string.IsNullOrEmpty(code))
+            return "Sinh viên phải có mã sinh viên.";
+        if (code.Length > MaxStudentCodeLength)
+            return $"Mã sinh viên tối đa {MaxStudentCodeLength} ký tự.";
+        return null;
+    }
+
+    private async Task<ServiceResult<int>> CreateCoreAsync(
+        string? fullNameRaw, string? emailRaw, string? password, AppRole role, string? studentCodeRaw)
+    {
+        var fullName = fullNameRaw?.Trim() ?? string.Empty;
+        var email = AccountRules.NormalizeEmail(emailRaw);
+
+        if (fullName.Length == 0)
+            return ServiceResult<int>.Fail("Họ tên không được để trống.");
+        if (!AccountRules.IsValidEmail(email))
+            return ServiceResult<int>.Fail("Email không hợp lệ.");
+        if (AccountRules.HasWhitespace(password))
+            return ServiceResult<int>.Fail("Mật khẩu không được chứa khoảng trắng.");
+        if (!AccountRules.IsValidPassword(password))
+            return ServiceResult<int>.Fail($"Mật khẩu phải có ít nhất {AccountRules.MinPasswordLength} ký tự.");
+        if (!Enum.IsDefined(role))
+            return ServiceResult<int>.Fail("Vai trò không hợp lệ.");
+        if (await _accounts.EmailExistsAsync(email))
+            return ServiceResult<int>.Fail($"Email {email} đã được dùng cho tài khoản khác.");
+
+        string? studentCode = null;
+        if (role == AppRole.Student)
+        {
+            var error = CheckStudentCode(studentCodeRaw, out studentCode);
+            if (error is not null)
+                return ServiceResult<int>.Fail(error);
+            if (await _accounts.StudentCodeExistsAsync(studentCode!))
+                return ServiceResult<int>.Fail($"Mã sinh viên {studentCode} đã được dùng cho tài khoản khác.");
+        }
+
+        var account = new Account
+        {
+            FullName = fullName,
+            Email = email,
+            PasswordHash = _hasher.Hash(password!),
+            Role = role.ToString(),
+            StudentCode = studentCode,
+            IsActive = true
+        };
+
+        await _accounts.AddAsync(account);
+        return ServiceResult<int>.Ok(account.Id);
+    }
     public Task<ServiceResult> UpdateAsync(int currentUserId, UpdateAccountRequest request) => throw new NotImplementedException();
 
     public Task<ServiceResult> SetActiveAsync(int currentUserId, int accountId, bool isActive) => throw new NotImplementedException();
