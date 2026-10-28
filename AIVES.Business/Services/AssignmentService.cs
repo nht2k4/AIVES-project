@@ -50,5 +50,16 @@ public class AssignmentService : IAssignmentService
             ? ServiceResult.Ok()
             : ServiceResult.NotFound("Giảng viên này không còn được phân công môn học này.");
     }
-    public Task<bool> CanAccessSubjectAsync(int accountId, int subjectId) => throw new NotImplementedException();
+    public async Task<bool> CanAccessSubjectAsync(int accountId, int subjectId)
+    {
+        var account = await _accounts.GetByIdAsync(accountId);
+        if (account is null || !account.IsActive) return false;
+
+        return account.Role switch
+        {
+            Roles.Admin => true,
+            Roles.Lecturer => await _assignments.ExistsAsync(accountId, subjectId),
+            _ => false
+        };
+    }
 }
