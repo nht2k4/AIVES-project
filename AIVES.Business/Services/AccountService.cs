@@ -147,7 +147,42 @@ public class AccountService : IAccountService
         await _accounts.UpdateAsync(account);
         return ServiceResult.Ok();
     }
-    public Task<ServiceResult> SetActiveAsync(int currentUserId, int accountId, bool isActive) => throw new NotImplementedException();
+    public async Task<ServiceResult> SetActiveAsync(int currentUserId, int accountId, bool isActive)
+    {
+        var account = await _accounts.GetByIdAsync(accountId);
+        if (account is null)
+            return ServiceResult.NotFound("Không tìm thấy tài khoản.");
 
-    public Task<ServiceResult> ResetPasswordAsync(int accountId, string newPassword) => throw new NotImplementedException();
+        if (account.IsActive == isActive)
+            return ServiceResult.Ok();
+
+        if (!isActive)
+        {
+            if (account.Id == currentUserId)
+                return ServiceResult.Fail("Bạn không thể tự khóa tài khoản của chính mình.");
+
+            if (account.Role == Roles.Admin && await _accounts.CountActiveByRoleAsync(Roles.Admin) <= 1)
+                return ServiceResult.Fail("Không thể khóa quản trị viên cuối cùng đang hoạt động.");
+        }
+
+        account.IsActive = isActive;
+        await _accounts.UpdateAsync(account);
+        return ServiceResult.Ok();
+    }
+
+    public async Task<ServiceResult> ResetPasswordAsync(int accountId, string newPassword)
+    {
+        var account = await _accounts.GetByIdAsync(accountId);
+        if (account is null)
+            return ServiceResult.NotFound("Không tìm thấy tài khoản.");
+
+        if (AccountRules.HasWhitespace(newPassword))
+            return ServiceResult.Fail("Mật khẩu mới không được chứa khoảng trắng.");
+        if (!AccountRules.IsValidPassword(newPassword))
+            return ServiceResult.Fail($"Mật khẩu mới phải có ít nhất {AccountRules.MinPasswordLength} ký tự.");
+
+        account.PasswordHash = _hasher.Hash(newPassword);
+        await _accounts.UpdateAsync(account);
+        return ServiceResult.Ok();
+    }
 }
