@@ -67,8 +67,87 @@ public class ExamService : IExamService
         return subjects.Where(s => s.IsActive).OrderBy(s => s.Code).Select(s => s.ToDto()).ToList();
     }
 
-    public Task<ServiceResult<int>> CreateAsync(int currentUserId, CreateExamRequest request) => throw new NotImplementedException();
+    public async Task<ServiceResult<int>> CreateAsync(int currentUserId, CreateExamRequest request)
+    {
+        // 1. Tên phiên thi
+        var title = request.Title?.Trim() ?? string.Empty;
+        if (title.Length == 0)
+            return ServiceResult<int>.Fail("Tên phiên thi không được để trống.");
+        if (title.Length > 150)
+            return ServiceResult<int>.Fail("Tên phiên thi tối đa 150 ký tự.");
 
+        // 2. Giờ bắt đầu không ở quá khứ (cho lệch 1 phút)
+        if (request.StartTime < DateTime.Now.AddMinutes(-1))
+            return ServiceResult<int>.Fail("Giờ bắt đầu không được nằm trong quá khứ.");
+
+        // 3. Các con số (giống CHECK trong database)
+        if (request.SlotMinutes < 1 || request.SlotMinutes > 120)
+            return ServiceResult<int>.Fail("Khung thời gian mỗi thí sinh phải từ 1 đến 120 phút.");
+        if (request.MainQuestionCount < 1 || request.MainQuestionCount > 20)
+            return ServiceResult<int>.Fail("Số câu hỏi chính phải từ 1 đến 20.");
+        if (request.MaxFollowUps < 0 || request.MaxFollowUps > 40)
+            return ServiceResult<int>.Fail("Tổng số câu đào sâu mỗi thí sinh phải từ 0 đến 40.");
+        if (request.MaxFollowUpsPerQuestion < 0 || request.MaxFollowUpsPerQuestion > 5)
+            return ServiceResult<int>.Fail("Số lượt hỏi xoáy mỗi câu phải từ 0 đến 5.");
+        if (request.AnswerSeconds < 10 || request.AnswerSeconds > 600)
+            return ServiceResult<int>.Fail("Thời gian trả lời mỗi câu phải từ 10 đến 600 giây.");
+
+        // 4. Danh sách sinh viên
+        var parsed = ParseStudents(request.StudentList);
+        if (!parsed.Succeeded)
+            return ServiceResult<int>.Fail(parsed.Error!);
+        var students = parsed.Data!;
+
+        // 5. Môn: tồn tại -> quyền -> đang mở
+        var subject = await _subjects.GetByIdAsync(request.SubjectId);
+        if (subject is null)
+            return ServiceResult<int>.NotFound("Không tìm thấy môn học.");
+        if (!await _assignmentService.CanAccessSubjectAsync(currentUserId, request.SubjectId))
+            return ServiceResult<int>.Forbidden("Bạn chưa được phân công môn học này.");
+        if (!subject.IsActive)
+            return ServiceResult<int>.Fail($"Môn {subject.Code} đã ngừng hoạt động, không thể tạo phiên thi.");
+
+        // 6. Ngân hàng câu hỏi đủ câu đang dùng
+        var pool = (await _questions.GetBySubjectAsync(request.SubjectId, true)).Select(q => q.Id).ToList();
+        if (pool.Count < request.MainQuestionCount)
+            return ServiceResult<int>.Fail(
+                $"Ngân hàng câu hỏi của môn {subject.Code} chỉ có {pool.Count} câu đang dùng, cần ít nhất {request.MainQuestionCount} câu.");
+
+        var sets = QuestionAllocator.Allocate(pool, students.Count, request.MainQuestionCount, new Random());
+
+        var session = new ExamSession
+        {
+            SubjectId = request.SubjectId,
+            Title = title,
+            StartTime = request.StartTime,
+            SlotMinutes = request.SlotMinutes,
+            MainQuestionCount = request.MainQuestionCount,
+            MaxFollowUps = request.MaxFollowUps,
+            MaxFollowUpsPerQuestion = request.MaxFollowUpsPerQuestion,
+            AnswerSeconds = request.AnswerSeconds,
+            Status = ExamStatuses.Open,
+            CreatedBy = currentUserId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        for (var i = 0; i < students.Count; i++)
+        {
+            var start = request.StartTime.AddMinutes(i * request.SlotMinutes);
+            var participant = new ExamParticipant
+            {
+                StudentCode = students[i].Code,
+                FullName = students[i].Name,
+                SlotStart = start,
+                SlotEnd = start.AddMinutes(request.SlotMinutes),
+                Status = ParticipantStatuses.Scheduled
+            };
+            AddQuestionSet(participant, sets[i]);
+            session.ExamParticipants.Add(participant);
+        }
+
+        await _exams.AddAsync(session);
+        return ServiceResult<int>.Ok(session.Id);
+    }
     public Task<ServiceResult<ExamDetailDto>> GetDetailAsync(int currentUserId, int examId) => throw new NotImplementedException();
 
     public Task<ServiceResult> SetOpenAsync(int currentUserId, int examId, bool open) => throw new NotImplementedException();
