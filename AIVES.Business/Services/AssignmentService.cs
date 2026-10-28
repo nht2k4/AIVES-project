@@ -20,9 +20,35 @@ public class AssignmentService : IAssignmentService
         _assignments = assignments;
     }
 
-    public Task<ServiceResult> AssignAsync(int lecturerId, int subjectId) => throw new NotImplementedException();
+    public async Task<ServiceResult> AssignAsync(int lecturerId, int subjectId)
+    {
+        var lecturer = await _accounts.GetByIdAsync(lecturerId);
+        if (lecturer is null)
+            return ServiceResult.NotFound("Không tìm thấy giảng viên.");
+        if (lecturer.Role != Roles.Lecturer)
+            return ServiceResult.Fail("Chỉ có thể phân công tài khoản có vai trò Giảng viên.");
+        if (!lecturer.IsActive)
+            return ServiceResult.Fail($"Tài khoản {lecturer.Email} đang bị khóa, không thể phân công.");
 
-    public Task<ServiceResult> UnassignAsync(int lecturerId, int subjectId) => throw new NotImplementedException();
+        var subject = await _subjects.GetByIdAsync(subjectId);
+        if (subject is null)
+            return ServiceResult.NotFound("Không tìm thấy môn học.");
+        if (!subject.IsActive)
+            return ServiceResult.Fail($"Môn {subject.Code} đã ngừng hoạt động, không nhận phân công mới.");
 
+        if (await _assignments.ExistsAsync(lecturerId, subjectId))
+            return ServiceResult.Fail($"{lecturer.FullName} đã được phân công môn {subject.Code} trước đó.");
+
+        await _assignments.AddAsync(new LecturerSubject { LecturerId = lecturerId, SubjectId = subjectId });
+        return ServiceResult.Ok();
+    }
+
+    public async Task<ServiceResult> UnassignAsync(int lecturerId, int subjectId)
+    {
+        var removed = await _assignments.RemoveAsync(lecturerId, subjectId);
+        return removed
+            ? ServiceResult.Ok()
+            : ServiceResult.NotFound("Giảng viên này không còn được phân công môn học này.");
+    }
     public Task<bool> CanAccessSubjectAsync(int accountId, int subjectId) => throw new NotImplementedException();
 }
