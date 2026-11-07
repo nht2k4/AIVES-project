@@ -1,0 +1,181 @@
+@model ExamDetailViewModel
+@{
+    ViewData["Title"] = $"Chi tiết: {Model.Exam.Title}";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Danh sách
+        </a>
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <h2 class="h4 mb-0">@Model.Exam.Title</h2>
+                @if (Model.Exam.Status == "Open")
+                {
+                    <span class="badge bg-success">Đang mở</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">Đã đóng</span>
+                }
+            </div>
+            <span class="text-muted small">Môn học: <strong>@Model.Exam.SubjectCode</strong> - @Model.Exam.SubjectName</span>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-action="Questions" asp-route-subjectId="@Model.Exam.SubjectId" class="btn btn-outline-info btn-sm">
+            <i class="bi bi-question-circle me-1"></i>Ngân hàng câu hỏi
+        </a>
+
+        @if (Model.CanReallocate)
+        {
+            <form asp-action="Reallocate" asp-route-id="@Model.Exam.Id" method="post" class="d-inline">
+                <button type="submit" class="btn btn-outline-warning btn-sm"
+                        onclick="return confirm('Bạn có chắc muốn chọn lại bộ câu hỏi cho tất cả thí sinh?');">
+                    <i class="bi bi-shuffle me-1"></i>Chọn lại câu hỏi
+                </button>
+            </form>
+        }
+
+        @if (Model.Exam.Status == "Open")
+        {
+            <form asp-action="SetOpen" asp-route-id="@Model.Exam.Id" asp-route-open="false" method="post" class="d-inline">
+                <button type="submit" class="btn btn-outline-danger btn-sm"
+                        onclick="return confirm('Bạn có chắc chắn muốn đóng phiên thi này?');">
+                    <i class="bi bi-lock me-1"></i>Đóng phiên
+                </button>
+            </form>
+        }
+        else
+        {
+            <form asp-action="SetOpen" asp-route-id="@Model.Exam.Id" asp-route-open="true" method="post" class="d-inline">
+                <button type="submit" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-unlock me-1"></i>Mở lại phiên
+                </button>
+            </form>
+        }
+    </div>
+</div>
+
+<div id="exam-detail" data-live="exam-@Model.Exam.Id">
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Thời gian bắt đầu</div>
+                    <div class="fw-semibold">@Model.Exam.StartTime.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Khung giờ mỗi bạn</div>
+                    <div class="fw-semibold">@Model.Exam.SlotMinutes phút / thí sinh</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Số câu hỏi & Trả lời</div>
+                    <div class="fw-semibold">@Model.Exam.MainQuestionCount câu chính (@Model.Exam.AnswerSeconds s/câu)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Hỏi xoáy AI</div>
+                    <div class="fw-semibold">Tối đa @Model.Exam.MaxFollowUps câu (@Model.Exam.MaxFollowUpsPerQuestion/câu chính)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Danh sách thí sinh & Lịch phỏng vấn</h5>
+            <span class="badge bg-primary rounded-pill">Tổng số: @Model.Exam.Participants.Count thí sinh</span>
+        </div>
+
+        @if (Model.Exam.Participants.Count == 0)
+        {
+            <div class="card-body text-center py-4 text-muted">
+                Chưa có thí sinh nào trong phiên thi này.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" style="width: 50px;">#</th>
+                            <th style="width: 130px;">MSSV</th>
+                            <th style="width: 200px;">Họ tên</th>
+                            <th style="width: 140px;">Khung giờ</th>
+                            <th class="text-center" style="width: 120px;">Trạng thái</th>
+                            <th>Bộ câu hỏi được giao</th>
+                            <th class="text-end" style="width: 110px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Exam.Participants.Count; i++)
+                        {
+                            var p = Model.Exam.Participants[i];
+                            <tr>
+                                <td class="text-center text-muted">@(i + 1)</td>
+                                <td><span class="badge bg-light text-dark border font-monospace">@p.StudentCode</span></td>
+                                <td class="fw-medium">@p.FullName</td>
+                                <td>
+                                    <span class="small">@p.SlotStart.ToString("HH:mm") - @p.SlotEnd.ToString("HH:mm")</span>
+                                </td>
+                                <td class="text-center">
+                                    @switch (p.Status)
+                                    {
+                                        case "InProgress":
+                                            <span class="badge bg-primary">Đang thi</span>
+                                            break;
+                                        case "Completed":
+                                            <span class="badge bg-success">Đã thi</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-warning text-dark">Chờ thi</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @if (p.Questions.Count > 0)
+                                    {
+                                        <ol class="small mb-0 ps-3">
+                                            @foreach (var q in p.Questions)
+                                            {
+                                                <li class="mb-1 text-secondary">@q</li>
+                                            }
+                                        </ol>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small fst-italic">Chưa phân bổ</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @if (p.Status == "InProgress" || p.Status == "Completed")
+                                    {
+                                        <a asp-controller="Interview" asp-action="Transcript" asp-route-participantId="@p.Id"
+                                           class="btn btn-sm btn-outline-info">
+                                            <i class="bi bi-file-earmark-text me-1"></i>Biên bản
+                                        </a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
