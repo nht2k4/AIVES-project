@@ -38,3 +38,59 @@ Tài liệu này tổng hợp kế hoạch phân công, hợp đồng kỹ thu�
    - 100% kiểm thử Business và SQL đều chuyển trạng thái xanh (Pass).
    - Kiểm thử thủ công theo bảng kiểm checklist giao diện đạt yêu cầu trên trình duyệt Chrome/Edge.
    - Không chứa mã khóa bảo mật hoặc API key trong lịch sử commit Git.
+
+---
+
+## 4. Ghi chú chi tiết triển khai & Bàn giao của TV4 (Assignment 3)
+
+### 4.1. Phân hệ Xác thực & Đăng nhập (Auth Module - Task 4.1 & 4.4)
+- **MVC Controller:** `AIVES.Ass3.MVC/Controllers/AuthController.cs`
+  - `Login` (GET/POST): Xác thực danh tính bằng Cookie Authentication, kiểm tra an toàn chuyển hướng với `Url.IsLocalUrl`, hiển thị thông báo lỗi đồng bộ.
+  - `Register` (GET/POST): Tiếp nhận sinh viên tự đăng ký với vai trò mặc định `Pending`, lưu mật khẩu băm PBKDF2 (không chứa khoảng trắng). Khi tạo thành công, tự động kích hoạt thông báo SignalR `NotifyAsync("...", LiveTopics.Accounts)`.
+  - `Logout` (POST) & `AccessDenied` (GET): Xử lý hủy phiên làm việc an toàn và chuyển hướng trang thông báo từ chối quyền truy cập.
+- **Web API Endpoints:** `AIVES.Ass3.MVC/Controllers/Api/AuthApiController.cs` (Kế thừa từ `ApiControllerBase` do TV4 thiết kế)
+  - `POST /api/auth/login`: Xác thực và thiết lập Cookie phiên, trả về mã 401 khi sai thông tin.
+  - `POST /api/auth/register`: Endpoint công khai cho phép tự đăng ký từ ứng dụng ngoài hoặc script, trả về mã 201 Created kèm Id tài khoản mới.
+  - `POST /api/auth/logout`: Xóa phiên đăng nhập, trả về 204 No Content.
+  - `GET /api/auth/me`: Trả về thông tin danh tính, vai trò và email hiện tại.
+- **ViewModels & Views:**
+  - `LoginViewModel`, `RegisterViewModel` với đầy đủ Data Annotations và Regex xác thực.
+  - Views: `Views/Auth/Login.cshtml` (bổ sung thông tin tài khoản mẫu Sinh viên `sv.a@fu.edu.vn / Student@123`), `Register.cshtml`, `AccessDenied.cshtml`.
+
+### 4.2. Phân hệ Quản lý Tài khoản (Accounts Module - Task 4.2 & 4.4)
+- **MVC Controller:** `AIVES.Ass3.MVC/Controllers/AccountsController.cs` (Bảo vệ bằng `[Authorize(Roles = Roles.Admin)]`)
+  - `Index` (GET): Tìm kiếm theo từ khóa họ tên, email; lọc theo vai trò (`Admin`, `Lecturer`, `Student`, `Pending`). Giao diện đặt trong vùng `<div id="account-list" data-live="accounts">` tự làm mới khi nhận sự kiện SignalR.
+  - `Create` (GET/POST): Tạo tài khoản trực tiếp; hỗ trợ nhập ô **Mã sinh viên (MSSV)** khi chọn vai trò `Student`. Không cho phép tạo tài khoản vai `Pending` ở giao diện quản trị.
+  - `Edit` (GET/POST): Chỉnh sửa thông tin, cấp vai trò từ `Pending` sang `Lecturer`/`Student` (chính là thao tác duyệt cấp quyền), quản lý gán mã sinh viên duy nhất.
+  - `SetActive` (POST): Khóa hoặc mở khóa tài khoản an toàn (chặn tự khóa chính mình và chặn khóa Admin cuối cùng).
+  - `ResetPassword` (POST): Đặt lại mật khẩu mới đáp ứng tiêu chuẩn an toàn (≥ 6 ký tự, không chứa khoảng trắng).
+- **Web API Endpoints:** `AIVES.Ass3.MVC/Controllers/Api/AccountsApiController.cs`
+  - Hỗ trợ đầy đủ bộ REST API quản lý tài khoản theo hợp đồng B3.5, kiểm thử thành công qua `ass3.http` mục 0, 1, 2, 7.
+- **ViewModels & Views:**
+  - `AccountListViewModel`, `AccountCreateViewModel`, `AccountEditViewModel`.
+  - Views: `Views/Accounts/Index.cshtml`, `Create.cshtml`, `Edit.cshtml`.
+
+### 4.3. Phân hệ Quản lý Phiên thi & Ngân hàng câu hỏi (Exams Module - Task 4.3)
+- **MVC Controller:** `AIVES.Ass3.MVC/Controllers/ExamsController.cs` (Bảo vệ bằng `[Authorize(Roles = Roles.Admin + "," + Roles.Lecturer)]`)
+  - `Index` (GET): Danh sách phiên thi, bao bọc trong vùng `<div id="exam-list" data-live="exams">` tự động cập nhật khi có phiên thi mới hoặc đổi trạng thái.
+  - `Create` (GET/POST): Tạo phiên thi vấn đáp; xác thực và ràng buộc toàn bộ danh sách MSSV phải tồn tại tài khoản `Student` trong hệ thống (nếu thiếu, Controller bắt lỗi từ Service và hiển thị rõ ràng trên form). Gửi SignalR topic `exams`.
+  - `Details` (GET): Chi tiết phiên thi trong vùng `<div id="exam-detail" data-live="exam-{id}">`. Danh sách thí sinh hiển thị trạng thái động (`Scheduled` -> `InProgress` -> `Completed`). Khi thí sinh đang thi hoặc đã hoàn thành, hiển thị nút **Biên bản** dẫn tới `/Interview/Transcript?participantId={id}`. **Tuyệt đối không có nút "Bắt đầu thi"** (đảm bảo giảng viên/admin không thi thay thí sinh).
+  - `SetOpen` (POST): Đóng hoặc mở lại phiên thi, phát sự kiện SignalR đồng thời tới `exams` và `exam-{id}`.
+  - `Reallocate` (POST): Chọn lại bộ câu hỏi cho toàn bộ thí sinh khi chưa có ai bắt đầu thi, phát sự kiện SignalR tới `exam-{id}`.
+  - `Questions` (GET): Quản lý ngân hàng câu hỏi theo môn học được phân công (hoặc mọi môn đối với Admin).
+  - `AddQuestion` (POST): Thêm câu hỏi mới vào ngân hàng môn học kèm ý chính dự kiến (`ExpectedPoints`).
+  - `SetQuestionActive` (POST): Bật hoặc tắt trạng thái sử dụng của câu hỏi trực tiếp trên bảng.
+- **ViewModels & Views:**
+  - `ExamListViewModel`, `ExamCreateViewModel`, `ExamDetailViewModel`, `ExamQuestionsViewModel`, `ExamAddQuestionInput`.
+  - Views: `Views/Exams/Index.cshtml`, `Create.cshtml`, `Details.cshtml`, `Questions.cshtml`.
+
+### 4.4. Tổng kết nghiệm thu công việc TV4 (Assignment 3)
+- **Đạt chuẩn kiểm thử tự động:** Toàn bộ API của TV4 vượt qua 100% các kịch bản kiểm thử trong `ass3.http` (mục 0, 1, 2, 7).
+- **Đạt chuẩn kiểm thử giao diện & SignalR:**
+  - Checklist A (Đăng nhập, bảo mật cookie, mẫu tài khoản sinh viên).
+  - Checklist R3 (Tự đăng ký vai trò `Pending`, thông báo realtime `accounts` sang trình duyệt quản trị viên).
+  - Checklist B3 (Quản trị tài khoản, cập nhật MSSV, phân quyền linh hoạt).
+  - Checklist E3 (Quản lý phiên thi, xác thực thí sinh tồn tại, theo dõi realtime tiến trình thi vấn đáp, xem biên bản chi tiết).
+- **Mã nguồn:** Toàn bộ tính năng đã được kiểm tra biên dịch đạt `0 Errors, 0 Warnings`, đóng gói sạch đẹp và đồng bộ hoàn chỉnh trên nhánh `assignment-3`.
+
+
