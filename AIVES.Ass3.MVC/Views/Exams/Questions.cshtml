@@ -1,0 +1,136 @@
+@model ExamQuestionsViewModel
+@{
+    ViewData["Title"] = $"Ngân hàng câu hỏi: {Model.Subject.Code}";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Phiên thi
+        </a>
+        <div>
+            <h2 class="h4 mb-0">Ngân hàng câu hỏi: @Model.Subject.Code</h2>
+            <span class="text-muted small">Môn học: @Model.Subject.Name</span>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm sticky-top" style="top: 1rem;">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title mb-0">Thêm câu hỏi mới</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="AddQuestion" asp-route-subjectId="@Model.Subject.Id" method="post" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="NewQuestion.Content" class="form-label fw-semibold"></label>
+                        <textarea asp-for="NewQuestion.Content" rows="4" class="form-control"
+                                  placeholder="Nhập nội dung câu hỏi phỏng vấn..."></textarea>
+                        <span asp-validation-for="NewQuestion.Content" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="NewQuestion.ExpectedPoints" class="form-label fw-semibold"></label>
+                        <textarea asp-for="NewQuestion.ExpectedPoints" rows="3" class="form-control"
+                                  placeholder="Ý 1; Ý 2; Ý 3..."></textarea>
+                        <span asp-validation-for="NewQuestion.ExpectedPoints" class="text-danger small"></span>
+                        <div class="form-text">Các ý chính cần sinh viên nêu được, ngăn cách bởi dấu chấm phẩy (;).</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-plus-circle me-1"></i>Thêm câu hỏi
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Danh sách câu hỏi</h5>
+                <span class="badge bg-secondary rounded-pill">Tổng số: @Model.Questions.Count câu</span>
+            </div>
+
+            @if (Model.Questions.Count == 0)
+            {
+                <div class="card-body text-center py-5 text-muted">
+                    <i class="bi bi-inbox display-5 mb-2"></i>
+                    <p class="mb-0">Chưa có câu hỏi nào trong ngân hàng môn @Model.Subject.Code.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 60px;">ID</th>
+                                <th>Nội dung câu hỏi</th>
+                                <th>Ý chính dự kiến</th>
+                                <th class="text-center" style="width: 110px;">Trạng thái</th>
+                                <th class="text-end" style="width: 100px;">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var q in Model.Questions)
+                            {
+                                <tr class="@(!q.IsActive ? "text-muted bg-light" : "")">
+                                    <td class="text-muted font-monospace small">#@q.Id</td>
+                                    <td class="@(!q.IsActive ? "text-decoration-line-through text-muted" : "fw-medium")">
+                                        @q.Content
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(q.ExpectedPoints))
+                                        {
+                                            <span class="small text-secondary">@q.ExpectedPoints</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small fst-italic">Không có</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @if (q.IsActive)
+                                        {
+                                            <span class="badge bg-success">Đang dùng</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Đã tắt</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <form asp-action="SetQuestionActive" asp-route-subjectId="@Model.Subject.Id"
+                                              asp-route-questionId="@q.Id" asp-route-isActive="@(!q.IsActive)"
+                                              method="post" class="d-inline">
+                                            @if (q.IsActive)
+                                            {
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Tắt câu hỏi">
+                                                    Tắt
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Bật câu hỏi">
+                                                    Bật lại
+                                                </button>
+                                            }
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
