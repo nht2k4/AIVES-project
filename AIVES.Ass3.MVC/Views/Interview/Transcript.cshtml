@@ -32,7 +32,10 @@
             @Model.SessionTitle · @Model.SubjectCode
         </div>
     </div>
-    <a class="btn btn-outline-secondary" href="@backUrl">&larr; @backText</a>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-primary" href="/Interview/DownloadTranscript?participantId=@Model.ParticipantId">Tải biên bản (.txt)</a>
+        <a class="btn btn-outline-secondary" href="@backUrl">&larr; @backText</a>
+    </div>
 </div>
 
 <div class="card mb-4">

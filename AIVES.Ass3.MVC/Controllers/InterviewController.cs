@@ -40,6 +40,23 @@ public class InterviewController : AppController
         return View(result.Data);
     }
 
+    // GET /Interview/DownloadTranscript?participantId=... (TV5 mini-task): cùng quyền với Transcript, trả file .txt
+    public async Task<IActionResult> DownloadTranscript(int participantId)
+    {
+        var result = await _interviewService.GetTranscriptAsync(CurrentUserId, participantId);
+        if (!result.Succeeded)
+        {
+            return MapFailure(result) ?? BadRequest(result.Error);
+        }
+
+        var transcript = result.Data!;
+        var bytes = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true)
+            .GetPreamble()
+            .Concat(System.Text.Encoding.UTF8.GetBytes(TranscriptText.Build(transcript)))
+            .ToArray();
+        return File(bytes, "text/plain; charset=utf-8", TranscriptText.FileName(transcript));
+    }
+
     // POST /Interview/Start: Bắt đầu hoặc tiếp tục phỏng vấn
     [HttpPost]
     [Authorize(Roles = Roles.Student)]
