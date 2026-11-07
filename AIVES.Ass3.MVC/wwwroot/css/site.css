@@ -1,0 +1,38 @@
+body {
+    background: #f6f8fb;
+    color: #20304a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.navbar {
+    background: #14335c;
+}
+
+.navbar-brand {
+    font-size: 1.25rem;
+    color: #fff !important;
+}
+
+.navbar .nav-link {
+    color: #e2e8f0 !important;
+}
+
+.navbar .nav-link:hover {
+    color: #fff !important;
+}
+
+.card {
+    border-color: #e1e7ef;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+    background: #fff;
+    border-bottom: 1px solid #e1e7ef;
+    font-weight: 600;
+}
+
+.table td, .table th {
+    vertical-align: middle;
+}
