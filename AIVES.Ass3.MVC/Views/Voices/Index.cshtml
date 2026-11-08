@@ -98,6 +98,10 @@ else
 
         @if (selected is not null)
         {
+            var currentVoice = selected.TtsVoice;
+            var currentVoiceUnavailable = !string.IsNullOrEmpty(currentVoice)
+                && !overview.Voices.Any(voice => string.Equals(voice.Name, currentVoice, StringComparison.OrdinalIgnoreCase));
+
             <p>Giọng đang dùng cho <strong>@selected.SubjectCode</strong> là <strong>@(selected.TtsVoice ?? overview.DefaultVoice)</strong>.</p>
             <form asp-action="Assign" method="post" class="d-flex gap-2 align-items-end">
                 <input type="hidden" name="subjectId" value="@selected.SubjectId" />
@@ -105,6 +109,10 @@ else
                     <label for="voice-name" class="form-label">Giọng đọc</label>
                     <select id="voice-name" name="name" class="form-select">
                         <option value="">Mặc định (@overview.DefaultVoice)</option>
+                        @if (currentVoiceUnavailable)
+                        {
+                            <option value="@currentVoice" selected>@currentVoice (đang dùng, chưa có trong danh sách)</option>
+                        }
                         @foreach (var voice in overview.Voices)
                         {
                             <option value="@voice.Name" selected="@string.Equals(voice.Name, selected.TtsVoice, StringComparison.OrdinalIgnoreCase)">@voice.Name</option>
