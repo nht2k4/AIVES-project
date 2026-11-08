@@ -1,0 +1,76 @@
+@model AIVES.Ass3.MVC.ViewModels.AccountEditViewModel
+@{
+    ViewData["Title"] = "Sửa tài khoản";
+}
+<a asp-action="Index" class="small">Quay lại danh sách tài khoản</a>
+<div class="mt-2 mb-4">
+    <h1 class="h3 mb-1">Cấp vai trò / sửa tài khoản</h1>
+    <p class="text-muted mb-0">@Model.Email</p>
+</div>
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Thông tin và vai trò</div>
+            <div class="card-body p-4">
+                <form method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="IsActive" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3" role="alert"></div>
+                    <div class="mb-3">
+                        <label asp-for="FullName" class="form-label"></label>
+                        <input asp-for="FullName" class="form-control" />
+                        <span asp-validation-for="FullName" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Role" class="form-label"></label>
+                        <select asp-for="Role" asp-items="Html.GetEnumSelectList<AppRole>()" class="form-select" id="roleSelect"></select>
+                        <span asp-validation-for="Role" class="text-danger"></span>
+                        <div class="form-text">Đổi từ "Chờ cấp quyền" sang vai trò khác chính là cấp quyền đăng nhập.</div>
+                    </div>
+                    <div class="mb-4" id="studentCodeGroup">
+                        <label asp-for="StudentCode" class="form-label"></label>
+                        <input asp-for="StudentCode" class="form-control" placeholder="Ví dụ: SE180001" />
+                        <span asp-validation-for="StudentCode" class="text-danger"></span>
+                        <div class="form-text">Bắt buộc khi vai trò là Sinh viên.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white fw-semibold">Khóa / mở khóa</div>
+            <div class="card-body">
+                <p class="mb-3">
+                    @if (Model.IsActive) { <span class="badge text-bg-success">Đang hoạt động</span> }
+                    else { <span class="badge text-bg-secondary">Đã khóa</span> }
+                </p>
+                <form method="post" asp-action="SetActive" asp-route-id="@Model.Id" asp-route-isActive="@(!Model.IsActive)">
+                    <button type="submit" class="btn @(Model.IsActive ? "btn-outline-danger" : "btn-outline-success") w-100">
+                        @(Model.IsActive ? "Khóa tài khoản" : "Mở khóa tài khoản")
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Đặt lại mật khẩu</div>
+            <div class="card-body">
+                <form method="post" asp-action="ResetPassword" asp-route-id="@Model.Id">
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">Mật khẩu mới</label>
+                        <input type="password" id="newPassword" name="newPassword" class="form-control" autocomplete="new-password" required />
+                        <div class="form-text">Mật khẩu tối thiểu 6 ký tự, không chứa khoảng trắng.</div>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary w-100">Đặt lại mật khẩu</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

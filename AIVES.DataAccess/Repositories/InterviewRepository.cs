@@ -1,5 +1,6 @@
 using AIVES.DataAccess.Entities;
 using AIVES.DataAccess.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace AIVES.DataAccess.Repositories;
 
@@ -10,15 +11,22 @@ public class InterviewRepository : IInterviewRepository
 
     public InterviewRepository(AppDbContext context) => _context = context;
 
-    public Task<ExamParticipant?> GetParticipantAsync(int participantId) => throw new NotImplementedException();
+    public Task<ExamParticipant?> GetParticipantAsync(int participantId) =>
+        _context.ExamParticipants
+            .Include(p => p.Session).ThenInclude(s => s.Subject)
+            .Include(p => p.ParticipantQuestions).ThenInclude(pq => pq.Question)
+            .FirstOrDefaultAsync(p => p.Id == participantId);
 
-    public Task<InterviewTurn?> GetTurnAsync(int turnId) => throw new NotImplementedException();
+    public Task<InterviewTurn?> GetTurnAsync(int turnId) =>
+        _context.InterviewTurns.Include(t => t.Question).FirstOrDefaultAsync(t => t.Id == turnId);
 
-    public Task<List<InterviewTurn>> GetTurnsAsync(int participantId) => throw new NotImplementedException();
+    public Task<List<InterviewTurn>> GetTurnsAsync(int participantId) =>
+        _context.InterviewTurns.Where(t => t.ParticipantId == participantId).OrderBy(t => t.Id).ToListAsync();
 
-    public Task<bool> HasTurnsAsync(int participantId) => throw new NotImplementedException();
+    public Task<bool> HasTurnsAsync(int participantId) =>
+        _context.InterviewTurns.AnyAsync(t => t.ParticipantId == participantId);
 
-    public void AddTurn(InterviewTurn turn) => throw new NotImplementedException();
+    public void AddTurn(InterviewTurn turn) => _context.InterviewTurns.Add(turn);
 
-    public Task SaveAsync() => throw new NotImplementedException();
+    public Task SaveAsync() => _context.SaveChangesAsync();
 }

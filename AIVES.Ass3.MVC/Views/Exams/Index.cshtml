@@ -1,0 +1,85 @@
+@model ExamListViewModel
+@{
+    ViewData["Title"] = "Phiên thi";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h3 mb-1">Phiên thi vấn đáp</h2>
+        <p class="text-muted mb-0">Quản lý lịch thi, phân bổ câu hỏi và theo dõi tiến trình phỏng vấn.</p>
+    </div>
+    <div>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Tạo phiên thi
+        </a>
+    </div>
+</div>
+
+<div id="exam-list" data-live="exams">
+    @if (Model.Exams.Count == 0)
+    {
+        <div class="card shadow-sm text-center py-5">
+            <div class="card-body">
+                <i class="bi bi-calendar-x text-muted display-4 mb-3"></i>
+                <h5 class="text-muted">Chưa có phiên thi nào...</h5>
+                <p class="text-secondary small mb-3">Hãy tạo phiên thi mới để phân bổ câu hỏi cho sinh viên.</p>
+                <a asp-action="Create" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i>Tạo phiên thi đầu tiên
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 120px;">Mã môn</th>
+                            <th>Môn học</th>
+                            <th>Tiêu đề phiên thi</th>
+                            <th style="width: 180px;">Thời gian bắt đầu</th>
+                            <th class="text-center" style="width: 110px;">Thí sinh</th>
+                            <th class="text-center" style="width: 120px;">Trạng thái</th>
+                            <th class="text-end" style="width: 130px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Exams)
+                        {
+                            <tr>
+                                <td><span class="badge bg-light text-dark border">@item.SubjectCode</span></td>
+                                <td class="fw-medium">@item.SubjectName</td>
+                                <td>
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="text-decoration-none fw-semibold">
+                                        @item.Title
+                                    </a>
+                                </td>
+                                <td>@item.StartTime.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="text-center">
+                                    <span class="badge bg-info text-dark rounded-pill">@item.ParticipantCount</span>
+                                </td>
+                                <td class="text-center">
+                                    @if (item.Status == "Open")
+                                    {
+                                        <span class="badge bg-success">Đang mở</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Đã đóng</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                                        Chi tiết
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
