@@ -83,7 +83,14 @@ public class VoicesController(IVoiceService voices, ISubjectService subjects, IL
         var result = await languages.GetForEditAsync(CurrentUserId, subjectId);
         if (!result.Succeeded) return MapFailure(result) ?? BadRequest(result.Error);
 
+        var config = result.Data!;
         var selectedVoice = name?.Trim() ?? "";
+        if (string.Equals(selectedVoice, config.TtsVoice ?? "", StringComparison.OrdinalIgnoreCase))
+        {
+            FlashSuccess("Môn đang dùng giọng đã chọn.");
+            return RedirectToAction(nameof(Index), new { subjectId });
+        }
+
         if (selectedVoice.Length > 0)
         {
             var overview = await voices.GetOverviewAsync();
@@ -96,7 +103,6 @@ public class VoicesController(IVoiceService voices, ISubjectService subjects, IL
             selectedVoice = available.Name;
         }
 
-        var config = result.Data!;
         var updated = await languages.UpdateAsync(CurrentUserId,
             new UpdateLanguageRequest(subjectId, config.SttLanguage, config.TtsLanguage, selectedVoice));
         if (updated.Succeeded) FlashSuccess("Đã cập nhật giọng đọc cho môn.");
