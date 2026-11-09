@@ -92,4 +92,28 @@ public class InterviewsApiController : ApiControllerBase
         var result = await _interviewService.GetTranscriptAsync(CurrentUserId, participantId);
         return Respond(result);
     }
+
+    // POST /api/interviews/turns/{turnId}/recording (multipart, trường "audio"): chỉ chính sinh viên, sau khi đã nộp câu trả lời
+    [HttpPost("turns/{turnId:int}/recording")]
+    [RequestSizeLimit(11 * 1024 * 1024)]
+    public async Task<IActionResult> UploadRecording(int turnId, IFormFile? audio)
+    {
+        if (audio is null) return BadRequest(new { error = "Thiếu tệp ghi âm (trường \"audio\")." });
+
+        using var buffer = new MemoryStream();
+        await audio.CopyToAsync(buffer);
+        var result = await _interviewService.SaveRecordingAsync(CurrentUserId, turnId, buffer.ToArray(), audio.ContentType);
+        return result.Succeeded ? StatusCode(StatusCodes.Status201Created) : Respond(result);
+    }
+
+    // GET /api/interviews/turns/{turnId}/recording: nghe lại ghi âm (chỉ Admin và giảng viên phụ trách môn)
+    [HttpGet("turns/{turnId:int}/recording")]
+    public async Task<IActionResult> Recording(int turnId)
+    {
+        var result = await _interviewService.GetRecordingAsync(CurrentUserId, turnId);
+        if (!result.Succeeded) return Respond(result);
+
+        Response.Headers.CacheControl = "no-store"; // dữ liệu riêng tư: trình duyệt và proxy không lưu lại
+        return File(result.Data!.Audio, result.Data.ContentType, enableRangeProcessing: true);
+    }
 }

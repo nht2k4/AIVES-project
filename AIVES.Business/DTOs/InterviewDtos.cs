@@ -7,7 +7,11 @@ public record InterviewStateDto(
     int MainIndex, int MainTotal, int FollowUpIndex, int FollowUpMax,
     int SecondsLeft, int AnswerSeconds, string SttLocale, string TtsLocale, int SessionId);
 
-public record TurnDto(int Id, string Kind, string Content, string? Reason, string? Answer, bool TimedOut, DateTime AskedAt);
+// HasRecording: lượt này có ghi âm câu trả lời để giảng viên nghe lại
+public record TurnDto(int Id, string Kind, string Content, string? Reason, string? Answer, bool TimedOut, DateTime AskedAt, bool HasRecording = false);
+
+// Ghi âm câu trả lời của một lượt hỏi (ví dụ audio/webm của MediaRecorder)
+public record RecordingDto(int TurnId, string ContentType, byte[] Audio);
 
 public record TranscriptDto(
     int ParticipantId, int SessionId, string SessionTitle, string SubjectCode,

@@ -542,6 +542,46 @@ Content-Type: application/json
 # KẾT QUẢ MONG ĐỢI: 200 audio/pcm khi VieNeu-TTS đang chạy; 503 khi chưa chạy
 GET {{host}}/api/interviews/turns/{{s5.response.body.turnId}}/speech
 
+### 8.9b Gửi ghi âm câu trả lời của lượt 1 (phòng thi tự gửi sau mỗi lần nộp; ở đây gửi tay một tệp nhỏ)
+# KẾT QUẢ MONG ĐỢI: 201
+POST {{host}}/api/interviews/turns/{{s1.response.body.turnId}}/recording
+Content-Type: multipart/form-data; boundary=AIVESBOUNDARY
+
+--AIVESBOUNDARY
+Content-Disposition: form-data; name="audio"; filename="answer.webm"
+Content-Type: audio/webm
+
+GIA-LAP-AM-THANH-WEBM
+--AIVESBOUNDARY--
+
+### 8.9c Gửi lại lần hai cho cùng lượt (không được ghi đè bản gốc)
+# KẾT QUẢ MONG ĐỢI: 400, {"error":"Lượt này đã có ghi âm."}
+POST {{host}}/api/interviews/turns/{{s1.response.body.turnId}}/recording
+Content-Type: multipart/form-data; boundary=AIVESBOUNDARY
+
+--AIVESBOUNDARY
+Content-Disposition: form-data; name="audio"; filename="answer.webm"
+Content-Type: audio/webm
+
+BAN-THAY-THE
+--AIVESBOUNDARY--
+
+### 8.9d Gửi ghi âm cho lượt đang mở (chưa nộp câu trả lời)
+# KẾT QUẢ MONG ĐỢI: 400, chỉ lưu ghi âm sau khi đã nộp câu trả lời
+POST {{host}}/api/interviews/turns/{{s5.response.body.turnId}}/recording
+Content-Type: multipart/form-data; boundary=AIVESBOUNDARY
+
+--AIVESBOUNDARY
+Content-Disposition: form-data; name="audio"; filename="answer.webm"
+Content-Type: audio/webm
+
+CHUA-NOP
+--AIVESBOUNDARY--
+
+### 8.9e Sinh viên tự tải ghi âm (quyền riêng tư: chỉ giảng viên phụ trách và Admin nghe)
+# KẾT QUẢ MONG ĐỢI: 403
+GET {{host}}/api/interviews/turns/{{s1.response.body.turnId}}/recording
+
 ### 8.10 Biên bản của mình, và của người khác
 # KẾT QUẢ MONG ĐỢI: 200 (5 lượt: Main, FollowUp kèm reason, FollowUp, Main, Main; lượt thứ 4 có timedOut true;
 # câu trả lời lượt 1 đã được sửa thành "Cái đó dùng Razor Pages với ModelState") rồi 403
@@ -562,6 +602,10 @@ GET {{host}}/api/interviews/2/transcript
 
 ###
 GET {{host}}/api/interviews/my
+
+### 8.11b Giảng viên phụ trách nghe lại ghi âm lượt 1 để đối chiếu với văn bản; biên bản có hasRecording
+# KẾT QUẢ MONG ĐỢI: 200, Content-Type audio/webm, nội dung "GIA-LAP-AM-THANH-WEBM"; lượt 1 trong biên bản (8.11) có "hasRecording": true
+GET {{host}}/api/interviews/turns/{{s1.response.body.turnId}}/recording
 
 ### 8.12 Giảng viên KHÔNG được thi thay sinh viên (kể cả môn mình phụ trách)
 # KẾT QUẢ MONG ĐỢI: 403, {"error":"Chỉ chính sinh viên dự thi mới được làm bài..."} cho cả bắt đầu và trả lời

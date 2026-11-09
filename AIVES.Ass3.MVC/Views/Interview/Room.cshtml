@@ -17,8 +17,11 @@
                 <!-- Thông báo quyền riêng tư -->
                 <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
                     <div class="small">
-                        <strong>Quy định bảo mật & quyền riêng tư:</strong>
-                        Hệ thống chỉ nhận diện và lưu trữ câu trả lời dưới dạng văn bản (STT). Không ghi âm hay lưu trữ tệp âm thanh của thí sinh.
+                        <strong>Ghi âm và quyền riêng tư:</strong>
+                        Câu trả lời của bạn được <strong>ghi âm</strong> và lưu cùng văn bản nhận dạng (STT) để giảng viên nghe lại, đối chiếu khi chấm.
+                        Chỉ <strong>giảng viên phụ trách môn và quản trị viên</strong> nghe được; ghi âm bị xóa cùng phiên thi.
+                        Giọng nói được trình duyệt chuyển thành chữ (Chrome/Edge dùng dịch vụ nhận dạng của Google/Microsoft).
+                        Bấm "Bắt đầu phỏng vấn" nghĩa là bạn đồng ý được ghi âm.
                     </div>
                 </div>
 
@@ -124,6 +127,60 @@
         let pcmPlayer = new PcmPlayer(48000);
         let manualTextPrefix = '';
 
+        // ---- Ghi âm câu trả lời (MediaRecorder): bắt đầu khi AI đọc xong, dừng khi nộp, gửi ngầm sau khi đã nhận câu tiếp theo
+        let micStream = null;
+        let recorder = null;
+        let recordedChunks = [];
+
+        async function startRecording() {
+            if (!navigator.mediaDevices || !window.MediaRecorder) return; // trình duyệt không hỗ trợ: vẫn thi bằng STT/gõ
+            try {
+                micStream = micStream || await navigator.mediaDevices.getUserMedia({ audio: true });
+                recordedChunks = [];
+                const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']
+                    .find(t => MediaRecorder.isTypeSupported(t));
+                recorder = new MediaRecorder(micStream, type ? { mimeType: type } : undefined);
+                recorder.ondataavailable = e => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
+                recorder.start(1000);
+            } catch (e) {
+                recorder = null; // từ chối quyền micro hoặc lỗi thiết bị: không ghi âm, buổi thi vẫn tiếp tục
+            }
+        }
+
+        // Trả về Promise<Blob|null> chứa toàn bộ ghi âm của lượt vừa trả lời
+        function stopRecording() {
+            const r = recorder;
+            recorder = null;
+            if (!r || r.state === 'inactive') return Promise.resolve(null);
+            return new Promise(resolve => {
+                r.onstop = () => resolve(recordedChunks.length ? new Blob(recordedChunks, { type: r.mimeType || 'audio/webm' }) : null);
+                r.stop();
+            });
+        }
+
+        async function uploadRecording(turnId, blob) {
+            if (!blob) return;
+            try {
+                const formData = new FormData();
+                formData.append('turnId', turnId);
+                formData.append('audio', blob, 'answer.webm');
+                formData.append('__RequestVerificationToken', antiForgeryToken);
+                const res = await fetch('/Interview/UploadRecording', {
+                    method: 'POST',
+                    headers: { 'RequestVerificationToken': antiForgeryToken },
+                    body: formData
+                });
+                if (!res.ok) console.warn('Không lưu được ghi âm của lượt', turnId, res.status);
+            } catch (e) {
+                console.warn('Không gửi được ghi âm của lượt', turnId, e);
+            }
+        }
+
+        function releaseMicrophone() {
+            if (micStream) micStream.getTracks().forEach(t => t.stop());
+            micStream = null;
+        }
+
         btnStart.addEventListener('click', async () => {
             btnStart.disabled = true;
             btnStart.textContent = 'Đang vào phòng...';
@@ -172,6 +229,8 @@
             document.getElementById('submit-error').classList.add('d-none');
 
             const answer = answerBox.value.trim();
+            const answeredTurnId = currentState.turnId;
+            const recording = stopRecording();
 
             try {
                 const formData = new FormData();
@@ -193,6 +252,8 @@
 
                 const nextState = await res.json();
                 renderState(nextState);
+                // Gửi ghi âm sau khi đã hiện câu tiếp theo: không làm chậm nhịp vấn đáp
+                recording.then(blob => uploadRecording(answeredTurnId, blob));
             } catch (err) {
                 document.getElementById('submit-error').textContent = err.message;
                 document.getElementById('submit-error').classList.remove('d-none');
@@ -208,6 +269,8 @@
             if (state.finished) {
                 examScreen.classList.add('d-none');
                 finishedScreen.classList.remove('d-none');
+                // Đợi bản ghi của câu cuối gửi xong (submitAnswer gọi upload ngay sau renderState) rồi mới tắt micro
+                setTimeout(releaseMicrophone, 3000);
                 return;
             }
 
@@ -282,6 +345,7 @@
             ttsStatus.textContent = 'Đã đọc xong câu hỏi. Hãy trả lời!';
             btnSubmit.disabled = false;
             startTimer();
+            startRecording();
             startSpeechRecognition(state.sttLocale || 'vi-VN');
         }
 

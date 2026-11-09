@@ -18,4 +18,11 @@ public interface IInterviewService
     Task<ServiceResult<Stream>> SpeakAsync(int currentUserId, int turnId);
 
     Task<ServiceResult<TranscriptDto>> GetTranscriptAsync(int currentUserId, int participantId);
+
+    // Lưu ghi âm câu trả lời của một lượt: chỉ chính sinh viên dự thi, sau khi đã nộp câu trả lời, mỗi lượt một lần,
+    // tệp âm thanh (audio/...) không rỗng và tối đa 10 MB.
+    Task<ServiceResult> SaveRecordingAsync(int currentUserId, int turnId, byte[] audio, string? contentType);
+
+    // Nghe lại ghi âm để đối chiếu với văn bản: chỉ Admin và giảng viên phụ trách môn (sinh viên không tải được).
+    Task<ServiceResult<RecordingDto>> GetRecordingAsync(int currentUserId, int turnId);
 }

@@ -28,5 +28,13 @@ public class InterviewRepository : IInterviewRepository
 
     public void AddTurn(InterviewTurn turn) => _context.InterviewTurns.Add(turn);
 
+    public Task<TurnRecording?> GetRecordingAsync(int turnId) =>
+        _context.TurnRecordings.AsNoTracking().FirstOrDefaultAsync(r => r.TurnId == turnId);
+
+    public Task<List<int>> GetRecordedTurnIdsAsync(int participantId) =>
+        _context.TurnRecordings.Where(r => r.Turn.ParticipantId == participantId).Select(r => r.TurnId).ToListAsync();
+
+    public void AddRecording(TurnRecording recording) => _context.TurnRecordings.Add(recording);
+
     public Task SaveAsync() => _context.SaveChangesAsync();
 }

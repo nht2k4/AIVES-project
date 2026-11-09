@@ -24,7 +24,7 @@ public static class TurnKinds
 public class AiOptions
 {
     public string? ApiKey { get; set; }
-    public string Model { get; set; } = "deepseek-chat";
+    public string Model { get; set; } = "deepseek-flash";
 }
 
 // Máy chủ VieNeu-TTS chạy cục bộ (API tương thích OpenAI). Không chạy thì phòng thi tự dùng giọng của trình duyệt.

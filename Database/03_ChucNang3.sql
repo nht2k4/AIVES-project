@@ -101,3 +101,18 @@ CREATE TABLE Voices (
     CONSTRAINT FK_Voices_Accounts FOREIGN KEY (CreatedBy) REFERENCES Accounts(Id)
 );
 GO
+
+/* =========================================================
+   Ghi âm câu trả lời của sinh viên: mỗi lượt hỏi tối đa một bản ghi, để giảng viên nghe lại và đối chiếu với văn bản STT.
+   Chỉ giảng viên phụ trách môn và Admin nghe được (kiểm ở tầng Business). Xóa lượt hỏi/thí sinh/phiên thi thì ghi âm xóa theo.
+   ========================================================= */
+IF OBJECT_ID(N'TurnRecordings') IS NULL
+CREATE TABLE TurnRecordings (
+    TurnId      INT               NOT NULL CONSTRAINT PK_TurnRecordings PRIMARY KEY,
+    ContentType VARCHAR(100)      NOT NULL,
+    Audio       VARBINARY(MAX)    NOT NULL,
+    SizeBytes   INT               NOT NULL,
+    CreatedAt   DATETIME2         NOT NULL CONSTRAINT DF_TurnRecordings_CreatedAt DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT FK_TurnRecordings_Turns FOREIGN KEY (TurnId) REFERENCES InterviewTurns(Id) ON DELETE CASCADE
+);
+GO

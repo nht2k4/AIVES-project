@@ -97,6 +97,22 @@ else
                         <div style="white-space: pre-wrap">@turn.Answer</div>
                     }
                 </div>
+
+                @* Ghi âm để đối chiếu với văn bản STT: chỉ giảng viên phụ trách và Admin (Business kiểm quyền lần nữa khi tải) *@
+                @if (!isStudent)
+                {
+                    <div class="mt-2">
+                        @if (turn.HasRecording)
+                        {
+                            <div class="small text-muted mb-1">Ghi âm câu trả lời</div>
+                            <audio controls preload="none" class="w-100" src="/Interview/Recording?turnId=@turn.Id"></audio>
+                        }
+                        else if (turn.Answer is not null)
+                        {
+                            <span class="small text-muted fst-italic">(không có ghi âm cho lượt này)</span>
+                        }
+                    </div>
+                }
             </div>
         </div>
     }

@@ -30,6 +30,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Subject> Subjects { get; set; }
 
+    public virtual DbSet<TurnRecording> TurnRecordings { get; set; }
+
     public virtual DbSet<Voice> Voices { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -110,6 +112,21 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.QuestionId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_InterviewTurns_Questions");
+        });
+
+        modelBuilder.Entity<TurnRecording>(entity =>
+        {
+            entity.HasKey(e => e.TurnId);
+
+            entity.Property(e => e.TurnId).ValueGeneratedNever();
+            entity.Property(e => e.ContentType)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Turn).WithOne(p => p.TurnRecording)
+                .HasForeignKey<TurnRecording>(d => d.TurnId)
+                .HasConstraintName("FK_TurnRecordings_Turns");
         });
 
         modelBuilder.Entity<LecturerSubject>(entity =>
