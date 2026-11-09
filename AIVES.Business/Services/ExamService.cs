@@ -107,6 +107,12 @@ public class ExamService : IExamService
         if (!subject.IsActive)
             return ServiceResult<int>.Fail($"Môn {subject.Code} đã ngừng hoạt động, không thể tạo phiên thi.");
 
+        // 5b. Thí sinh phải tồn tại: mỗi MSSV phải là tài khoản Sinh viên (giảng viên, admin không có MSSV nên không thể là thí sinh).
+        // Kiểm sau phần quyền để người không có quyền không dò được MSSV nào tồn tại.
+        foreach (var (code, name) in students)
+            if (!await _accounts.StudentCodeExistsAsync(code))
+                return ServiceResult<int>.Fail($"Thí sinh {code} ({name}) chưa có tài khoản Sinh viên trong hệ thống. Tạo hoặc cấp vai trò Sinh viên kèm MSSV này trước.");
+
         // 6. Ngân hàng câu hỏi đủ câu đang dùng
         var pool = (await _questions.GetBySubjectAsync(request.SubjectId, true)).Select(q => q.Id).ToList();
         if (pool.Count < request.MainQuestionCount)

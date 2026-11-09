@@ -68,7 +68,11 @@ public class FollowUpGenerator : IFollowUpGenerator
 
         var requestBody = new
         {
-            model = string.IsNullOrWhiteSpace(_options.Model) ? "deepseek-chat" : _options.Model,
+            model = string.IsNullOrWhiteSpace(_options.Model) ? "deepseek-flash" : _options.Model,
+            max_tokens = 300,
+            // deepseek-flash mặc định bật "thinking": tiêu token vào suy luận và có thể trả nội dung rỗng.
+            // Tắt đi thì trả lời ngay, ít token nhất (rẻ nhất) và nhanh nhất cho nhịp vấn đáp.
+            thinking = new { type = "disabled" },
             messages = new[]
             {
                 new { role = "system", content = systemPrompt },
