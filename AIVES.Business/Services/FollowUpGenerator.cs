@@ -35,7 +35,8 @@ public class FollowUpGenerator : IFollowUpGenerator
             cts.CancelAfter(TimeSpan.FromSeconds(20));
 
             var decision = await CallDeepSeekAsync(context, cts.Token);
-            if (decision != null && !string.IsNullOrWhiteSpace(decision.Question))
+            // AI nói không cần hỏi: tôn trọng (không để luật dự phòng hỏi ngược ý AI). AI muốn hỏi thì phải có câu hỏi.
+            if (decision != null && (!decision.Ask || !string.IsNullOrWhiteSpace(decision.Question)))
             {
                 return decision;
             }
@@ -54,8 +55,8 @@ public class FollowUpGenerator : IFollowUpGenerator
         var isEnglish = context.Locale.StartsWith("en", StringComparison.OrdinalIgnoreCase);
 
         var systemPrompt = isEnglish
-            ? "You are an oral exam interviewer. Analyze the student's answer based on the main question and expected key points. Decide whether to ask a follow-up question. Respond strictly with JSON format: {\"ask\": boolean, \"question\": string, \"reason\": string}."
-            : "Bạn là giám khảo phỏng vấn thi vấn đáp. Hãy phân tích câu trả lời của thí sinh dựa vào câu hỏi chính và các ý chính mong đợi. Quyết định xem có cần hỏi xoáy (làm rõ thêm) không. Trả về đúng định dạng JSON: {\"ask\": boolean, \"question\": string, \"reason\": string}.";
+            ? "You are an oral exam interviewer. Analyze the student's answer based on the main question and expected key points. Decide whether to ask a follow-up question. The follow-up must be ONE short question (at most 25 words, no numbered list) and the reason one short sentence, so it can be read aloud quickly. Respond strictly with JSON format: {\"ask\": boolean, \"question\": string, \"reason\": string}."
+            : "Bạn là giám khảo phỏng vấn thi vấn đáp. Hãy phân tích câu trả lời của thí sinh dựa vào câu hỏi chính và các ý chính mong đợi. Quyết định xem có cần hỏi xoáy (làm rõ thêm) không. Câu hỏi xoáy phải là MỘT câu ngắn (tối đa khoảng 25 từ, không liệt kê nhiều ý) và lý do là một câu ngắn, để đọc thành tiếng nhanh, giữ nhịp vấn đáp. Trả về đúng định dạng JSON: {\"ask\": boolean, \"question\": string, \"reason\": string}.";
 
         var exchangesText = string.Join("\n", context.Exchanges.Select((ex, idx) =>
             $"Lượt {idx + 1}:\n- Câu hỏi: {ex.Question}\n- Trả lời: {ex.Answer}"));

@@ -418,6 +418,37 @@ public class InterviewRepositoryTests
         return (await Sql.SeedSessionAsync(subject, creator, new[] { q }, codes.Length == 0 ? new[] { "SE1" } : codes), q);
     }
 
+    // Ghi âm: lưu cùng SaveAsync, đọc lại đúng nội dung, liệt kê theo thí sinh, và tự xóa khi xóa phiên thi (cascade)
+    [SqlFact]
+    public async Task Recording_IsSavedReadBack_ListedByParticipant_AndDeletedWithTheSession()
+    {
+        var (session, q) = await SeedAsync();
+        var pid = (await new ExamRepository(Sql.NewContext()).GetDetailAsync(session.Id))!.ExamParticipants.Single().Id;
+        var ctx = Sql.NewContext();
+        var repo = new InterviewRepository(ctx);
+        repo.AddTurn(new InterviewTurn { ParticipantId = pid, QuestionId = q.Id, Kind = "Main", Content = "Hỏi", AskedAt = DateTime.UtcNow, Answer = "Đáp", AnsweredAt = DateTime.UtcNow });
+        await repo.SaveAsync();
+        var turnId = (await repo.GetTurnsAsync(pid)).Single().Id;
+
+        var audio = new byte[] { 0x1A, 0x45, 0xDF, 0xA3, 7, 8, 9 };
+        repo.AddRecording(new TurnRecording { TurnId = turnId, ContentType = "audio/webm;codecs=opus", Audio = audio, SizeBytes = audio.Length, CreatedAt = DateTime.UtcNow });
+        await repo.SaveAsync();
+
+        var fresh = new InterviewRepository(Sql.NewContext());
+        var saved = await fresh.GetRecordingAsync(turnId);
+        Assert.Equal("audio/webm;codecs=opus", saved!.ContentType);
+        Assert.Equal(audio, saved.Audio);
+        Assert.Equal(new[] { turnId }, await fresh.GetRecordedTurnIdsAsync(pid));
+        Assert.Null(await fresh.GetRecordingAsync(int.MaxValue));
+
+        await using (var del = Sql.NewContext())
+        {
+            del.ExamSessions.Remove(await del.ExamSessions.FindAsync(session.Id) ?? throw new InvalidOperationException());
+            await del.SaveChangesAsync();
+        }
+        Assert.Null(await new InterviewRepository(Sql.NewContext()).GetRecordingAsync(turnId));
+    }
+
     [SqlFact]
     public async Task GetParticipant_LoadsSessionSubjectAndQuestions()
     {

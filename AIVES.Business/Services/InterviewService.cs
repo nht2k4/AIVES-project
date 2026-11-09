@@ -14,6 +14,7 @@ public class InterviewService : IInterviewService
     // Thời gian dành cho việc AI đọc câu hỏi (TTS): đồng hồ phía trình duyệt chỉ chạy sau khi đọc xong
     private const int ReadingGraceSeconds = 15;
     private const int MaxAnswerLength = 4000;
+    private const int MaxRecordingBytes = 10 * 1024 * 1024; // khoảng 10 phút giọng nói Opus, dư cho một câu trả lời
 
     private readonly IInterviewRepository _interviews;
     private readonly IExamRepository _exams;
@@ -174,9 +175,60 @@ public class InterviewService : IInterviewService
             return ServiceResult<TranscriptDto>.Forbidden("Bạn chưa được phân công môn học này.");
 
         var turns = await _interviews.GetTurnsAsync(p.Id);
+        var recorded = (await _interviews.GetRecordedTurnIdsAsync(p.Id)).ToHashSet();
         return ServiceResult<TranscriptDto>.Ok(new TranscriptDto(
             p.Id, p.SessionId, p.Session.Title, p.Session.Subject.Code, p.StudentCode, p.FullName, p.Status,
-            turns.Select(t => new TurnDto(t.Id, t.Kind, t.Content, t.Reason, t.Answer, t.TimedOut, t.AskedAt)).ToList()));
+            turns.Select(t => new TurnDto(t.Id, t.Kind, t.Content, t.Reason, t.Answer, t.TimedOut, t.AskedAt, recorded.Contains(t.Id))).ToList()));
+    }
+
+    // ---- Ghi âm câu trả lời (để giảng viên nghe lại, đối chiếu với văn bản STT)
+    public async Task<ServiceResult> SaveRecordingAsync(int currentUserId, int turnId, byte[] audio, string? contentType)
+    {
+        var turn = await _interviews.GetTurnAsync(turnId);
+        var p = turn is null ? null : await _interviews.GetParticipantAsync(turn.ParticipantId);
+        if (turn is null || p is null)
+            return ServiceResult.NotFound("Không tìm thấy lượt hỏi.");
+        if (!await IsCandidateAsync(currentUserId, p))
+            return ServiceResult.Forbidden("Chỉ chính sinh viên dự thi mới được gửi ghi âm câu trả lời.");
+        if (turn.AnsweredAt is null)
+            return ServiceResult.Fail("Chỉ lưu ghi âm sau khi đã nộp câu trả lời của lượt này.");
+        if (audio is null || audio.Length == 0)
+            return ServiceResult.Fail("Tệp ghi âm rỗng.");
+        if (audio.Length > MaxRecordingBytes)
+            return ServiceResult.Fail($"Tệp ghi âm tối đa {MaxRecordingBytes / 1024 / 1024} MB.");
+        var type = (contentType ?? string.Empty).Trim();
+        if (!type.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) || type.Length > 100)
+            return ServiceResult.Fail("Tệp ghi âm phải là âm thanh (audio/...).");
+        // Mỗi lượt chỉ một bản ghi: không cho ghi đè, để bản gốc không bị thay sau khi đã nộp
+        if (await _interviews.GetRecordingAsync(turnId) is not null)
+            return ServiceResult.Fail("Lượt này đã có ghi âm.");
+
+        _interviews.AddRecording(new TurnRecording
+        {
+            TurnId = turnId,
+            ContentType = type,
+            Audio = audio,
+            SizeBytes = audio.Length,
+            CreatedAt = DateTime.UtcNow
+        });
+        await _interviews.SaveAsync();
+        return ServiceResult.Ok();
+    }
+
+    public async Task<ServiceResult<RecordingDto>> GetRecordingAsync(int currentUserId, int turnId)
+    {
+        var turn = await _interviews.GetTurnAsync(turnId);
+        var p = turn is null ? null : await _interviews.GetParticipantAsync(turn.ParticipantId);
+        if (turn is null || p is null)
+            return ServiceResult<RecordingDto>.NotFound("Không tìm thấy lượt hỏi.");
+        // Quyền riêng tư: chỉ Admin và giảng viên phụ trách môn (CanAccessSubject trả false cho sinh viên)
+        if (!await _assignmentService.CanAccessSubjectAsync(currentUserId, p.Session.SubjectId))
+            return ServiceResult<RecordingDto>.Forbidden("Chỉ giảng viên phụ trách môn và quản trị viên được nghe ghi âm.");
+
+        var recording = await _interviews.GetRecordingAsync(turnId);
+        return recording is null
+            ? ServiceResult<RecordingDto>.NotFound("Lượt này không có ghi âm.")
+            : ServiceResult<RecordingDto>.Ok(new RecordingDto(turnId, recording.ContentType, recording.Audio));
     }
 
     // Làm bài (bắt đầu, trả lời, nghe câu hỏi): chỉ chính sinh viên có MSSV trùng thí sinh. Giảng viên không thi thay.

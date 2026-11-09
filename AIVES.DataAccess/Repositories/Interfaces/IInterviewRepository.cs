@@ -10,5 +10,11 @@ public interface IInterviewRepository
     Task<List<InterviewTurn>> GetTurnsAsync(int participantId);
     Task<bool> HasTurnsAsync(int participantId);
     void AddTurn(InterviewTurn turn);
+
+    // Ghi âm câu trả lời: một bản ghi mỗi lượt hỏi. GetRecordingAsync nạp cả nội dung âm thanh; GetRecordedTurnIdsAsync chỉ lấy mã lượt (nhẹ, cho biên bản).
+    Task<TurnRecording?> GetRecordingAsync(int turnId);
+    Task<List<int>> GetRecordedTurnIdsAsync(int participantId);
+    void AddRecording(TurnRecording recording);
+
     Task SaveAsync();
 }
