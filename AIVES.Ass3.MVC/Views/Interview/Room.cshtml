@@ -17,8 +17,11 @@
                 <!-- Thông báo quyền riêng tư -->
                 <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
                     <div class="small">
-                        <strong>Quy định bảo mật & quyền riêng tư:</strong>
-                        Hệ thống chỉ nhận diện và lưu trữ câu trả lời dưới dạng văn bản (STT). Không ghi âm hay lưu trữ tệp âm thanh của thí sinh.
+                        <strong>Ghi âm và quyền riêng tư:</strong>
+                        Câu trả lời của bạn được <strong>ghi âm</strong> và lưu cùng văn bản nhận dạng (STT) để giảng viên nghe lại, đối chiếu khi chấm.
+                        Chỉ <strong>giảng viên phụ trách môn và quản trị viên</strong> nghe được; ghi âm bị xóa cùng phiên thi.
+                        Giọng nói được trình duyệt chuyển thành chữ (Chrome/Edge dùng dịch vụ nhận dạng của Google/Microsoft).
+                        Bấm "Bắt đầu phỏng vấn" nghĩa là bạn đồng ý được ghi âm.
                     </div>
                 </div>
 
@@ -66,6 +69,25 @@
                         <textarea id="answer-box" class="form-control" rows="5" placeholder="Nhấp để gõ hoặc nói vào micro sau khi AI đọc xong..."></textarea>
                     </div>
 
+                    <!-- Thanh điều khiển Push to Talk & Micro -->
+                    <div class="card bg-white border p-3 mb-3 shadow-sm rounded-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div class="d-flex align-items-center gap-2 flex-grow-1">
+                                <button type="button" id="btn-ptt" class="btn btn-outline-danger btn-lg px-4 py-2 fw-bold ptt-btn d-inline-flex align-items-center gap-2" disabled>
+                                    <span id="ptt-icon">🎙️</span>
+                                    <span id="ptt-btn-text">Giữ để nói (Push to Talk)</span>
+                                </button>
+                                <span class="small text-muted d-none d-md-inline">
+                                    Giữ chuột hoặc giữ phím <code>Space</code> để nói
+                                </span>
+                            </div>
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" id="ptt-toggle" checked>
+                                <label class="form-check-label small fw-semibold" for="ptt-toggle">Chế độ Push-to-Talk</label>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="d-flex justify-content-between align-items-center mt-4">
                         <span class="text-muted small">
                             * Hết thời gian, hệ thống sẽ tự động nộp câu trả lời hiện tại.
@@ -96,6 +118,37 @@
 @Html.AntiForgeryToken()
 
 @section Scripts {
+    <style>
+        .ptt-btn {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            transition: all 0.15s ease-in-out;
+            cursor: pointer;
+        }
+        .ptt-btn.active {
+            background-color: #dc3545 !important;
+            border-color: #dc3545 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 15px rgba(220, 53, 69, 0.65) !important;
+            transform: scale(0.97);
+        }
+        .pulse-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #dc3545;
+            animation: ptt-pulse 1.2s infinite;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        @@keyframes ptt-pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { transform: scale(1.2); box-shadow: 0 0 0 8px rgba(220, 53, 69, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+    </style>
     <script src="~/js/pcm-player.js" asp-append-version="true"></script>
     <script>
         const participantId = @participantId;
@@ -107,6 +160,10 @@
 
         const btnStart = document.getElementById('btn-start');
         const btnSubmit = document.getElementById('btn-submit');
+        const btnPtt = document.getElementById('btn-ptt');
+        const pttBtnText = document.getElementById('ptt-btn-text');
+        const pttIcon = document.getElementById('ptt-icon');
+        const pttToggle = document.getElementById('ptt-toggle');
         const questionText = document.getElementById('question-text');
         const questionBadge = document.getElementById('question-badge');
         const followupBadge = document.getElementById('followup-badge');
@@ -122,7 +179,63 @@
         let recognition = null;
         let isRecognizing = false;
         let pcmPlayer = new PcmPlayer(48000);
-        let manualTextPrefix = '';
+        let baseText = '';
+        let currentSttLocale = 'vi-VN';
+        let isPttActive = false;
+
+        // ---- Ghi âm câu trả lời (MediaRecorder): bắt đầu khi AI đọc xong, dừng khi nộp, gửi ngầm sau khi đã nhận câu tiếp theo
+        let micStream = null;
+        let recorder = null;
+        let recordedChunks = [];
+
+        async function startRecording() {
+            if (!navigator.mediaDevices || !window.MediaRecorder) return; // trình duyệt không hỗ trợ: vẫn thi bằng STT/gõ
+            try {
+                micStream = micStream || await navigator.mediaDevices.getUserMedia({ audio: true });
+                recordedChunks = [];
+                const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']
+                    .find(t => MediaRecorder.isTypeSupported(t));
+                recorder = new MediaRecorder(micStream, type ? { mimeType: type } : undefined);
+                recorder.ondataavailable = e => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
+                recorder.start(1000);
+            } catch (e) {
+                recorder = null; // từ chối quyền micro hoặc lỗi thiết bị: không ghi âm, buổi thi vẫn tiếp tục
+            }
+        }
+
+        // Trả về Promise<Blob|null> chứa toàn bộ ghi âm của lượt vừa trả lời
+        function stopRecording() {
+            const r = recorder;
+            recorder = null;
+            if (!r || r.state === 'inactive') return Promise.resolve(null);
+            return new Promise(resolve => {
+                r.onstop = () => resolve(recordedChunks.length ? new Blob(recordedChunks, { type: r.mimeType || 'audio/webm' }) : null);
+                r.stop();
+            });
+        }
+
+        async function uploadRecording(turnId, blob) {
+            if (!blob) return;
+            try {
+                const formData = new FormData();
+                formData.append('turnId', turnId);
+                formData.append('audio', blob, 'answer.webm');
+                formData.append('__RequestVerificationToken', antiForgeryToken);
+                const res = await fetch('/Interview/UploadRecording', {
+                    method: 'POST',
+                    headers: { 'RequestVerificationToken': antiForgeryToken },
+                    body: formData
+                });
+                if (!res.ok) console.warn('Không lưu được ghi âm của lượt', turnId, res.status);
+            } catch (e) {
+                console.warn('Không gửi được ghi âm của lượt', turnId, e);
+            }
+        }
+
+        function releaseMicrophone() {
+            if (micStream) micStream.getTracks().forEach(t => t.stop());
+            micStream = null;
+        }
 
         btnStart.addEventListener('click', async () => {
             btnStart.disabled = true;
@@ -162,16 +275,24 @@
         async function submitAnswer(isTimeout) {
             if (!currentState || !currentState.turnId) return;
 
+            if (isPttActive) stopPtt();
+            btnPtt.disabled = true;
             stopTimer();
             stopSpeechRecognition();
             pcmPlayer.stop();
             if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+            if (recorder && recorder.state === 'paused') {
+                try { recorder.resume(); } catch (e) {}
+            }
 
             btnSubmit.disabled = true;
             btnSubmit.textContent = 'Đang nộp...';
             document.getElementById('submit-error').classList.add('d-none');
 
             const answer = answerBox.value.trim();
+            const answeredTurnId = currentState.turnId;
+            const recording = stopRecording();
 
             try {
                 const formData = new FormData();
@@ -193,11 +314,14 @@
 
                 const nextState = await res.json();
                 renderState(nextState);
+                // Gửi ghi âm sau khi đã hiện câu tiếp theo: không làm chậm nhịp vấn đáp
+                recording.then(blob => uploadRecording(answeredTurnId, blob));
             } catch (err) {
                 document.getElementById('submit-error').textContent = err.message;
                 document.getElementById('submit-error').classList.remove('d-none');
                 btnSubmit.disabled = false;
                 btnSubmit.textContent = 'Nộp câu trả lời';
+                btnPtt.disabled = false;
             }
         }
 
@@ -205,9 +329,17 @@
             currentState = state;
             startScreen.classList.add('d-none');
 
+            if (isPttActive) stopPtt();
+            btnPtt.disabled = true;
+            btnPtt.classList.remove('active');
+            pttBtnText.textContent = 'Giữ để nói (Push to Talk)';
+            pttIcon.textContent = '🎙️';
+
             if (state.finished) {
                 examScreen.classList.add('d-none');
                 finishedScreen.classList.remove('d-none');
+                // Đợi bản ghi của câu cuối gửi xong (submitAnswer gọi upload ngay sau renderState) rồi mới tắt micro
+                setTimeout(releaseMicrophone, 3000);
                 return;
             }
 
@@ -217,7 +349,7 @@
             subjectBadge.textContent = state.subjectCode || 'AIVES';
             questionText.textContent = state.content || '(Không có nội dung câu hỏi)';
             answerBox.value = '';
-            manualTextPrefix = '';
+            baseText = '';
             btnSubmit.disabled = true;
             btnSubmit.textContent = 'Nộp câu trả lời';
 
@@ -281,8 +413,22 @@
         function onQuestionSpoken(state) {
             ttsStatus.textContent = 'Đã đọc xong câu hỏi. Hãy trả lời!';
             btnSubmit.disabled = false;
+            btnPtt.disabled = false;
+            currentSttLocale = state.sttLocale || 'vi-VN';
             startTimer();
-            startSpeechRecognition(state.sttLocale || 'vi-VN');
+            startRecording();
+
+            if (pttToggle.checked) {
+                stopSpeechRecognition();
+                micStatus.textContent = 'Micro đang chờ (Bấm giữ nút để nói)';
+                micStatus.className = 'badge text-bg-secondary';
+                if (recorder && recorder.state === 'recording') {
+                    try { recorder.pause(); } catch (e) {}
+                }
+            } else {
+                baseText = answerBox.value.trim();
+                startSpeechRecognition(currentSttLocale);
+            }
         }
 
         function startTimer() {
@@ -319,10 +465,16 @@
             if (!SpeechRecognition) {
                 micStatus.textContent = 'Trình duyệt không hỗ trợ micro (vui lòng gõ tay)';
                 micStatus.className = 'badge text-bg-warning text-dark';
+                btnPtt.disabled = true;
                 return;
             }
 
             try {
+                if (recognition) {
+                    try { recognition.stop(); } catch (e) {}
+                    recognition = null;
+                }
+
                 recognition = new SpeechRecognition();
                 recognition.lang = locale;
                 recognition.continuous = true;
@@ -330,8 +482,13 @@
 
                 recognition.onstart = () => {
                     isRecognizing = true;
-                    micStatus.textContent = 'Micro đang lắng nghe...';
-                    micStatus.className = 'badge text-bg-success';
+                    if (pttToggle.checked) {
+                        micStatus.innerHTML = '<span class="pulse-indicator"></span>Micro đang lắng nghe...';
+                        micStatus.className = 'badge text-bg-danger';
+                    } else {
+                        micStatus.textContent = 'Micro đang lắng nghe...';
+                        micStatus.className = 'badge text-bg-success';
+                    }
                 };
 
                 recognition.onresult = (event) => {
@@ -339,9 +496,11 @@
                     for (let i = 0; i < event.results.length; i++) {
                         transcript += event.results[i][0].transcript;
                     }
+                    transcript = transcript.trim();
+                    if (!transcript) return;
 
-                    if (manualTextPrefix) {
-                        answerBox.value = manualTextPrefix + ' ' + transcript;
+                    if (baseText) {
+                        answerBox.value = baseText + ' ' + transcript;
                     } else {
                         answerBox.value = transcript;
                     }
@@ -351,18 +510,28 @@
                     if (event.error === 'not-allowed') {
                         micStatus.textContent = 'Micro bị từ chối quyền (vui lòng gõ tay)';
                         micStatus.className = 'badge text-bg-danger';
+                        btnPtt.disabled = true;
                     }
                 };
 
                 recognition.onend = () => {
                     isRecognizing = false;
-                    // Tự động bật lại nếu câu hỏi vẫn đang mở
-                    if (timerInterval && !btnSubmit.disabled) {
-                        manualTextPrefix = answerBox.value.trim();
-                        try { recognition.start(); } catch (e) {}
+                    if (pttToggle.checked) {
+                        if (isPttActive) {
+                            try { recognition.start(); } catch (e) {}
+                        } else {
+                            micStatus.textContent = 'Micro đang chờ (Bấm giữ nút để nói)';
+                            micStatus.className = 'badge text-bg-secondary';
+                        }
                     } else {
-                        micStatus.textContent = 'Micro đã dừng';
-                        micStatus.className = 'badge text-bg-secondary';
+                        // Tự động bật lại nếu đang ở chế độ liên tục và câu hỏi vẫn đang mở
+                        if (timerInterval && !btnSubmit.disabled) {
+                            baseText = answerBox.value.trim();
+                            try { recognition.start(); } catch (e) {}
+                        } else {
+                            micStatus.textContent = 'Micro đã dừng';
+                            micStatus.className = 'badge text-bg-secondary';
+                        }
                     }
                 };
 
@@ -379,13 +548,88 @@
                 recognition = null;
             }
             isRecognizing = false;
-            micStatus.textContent = 'Micro đã tắt';
-            micStatus.className = 'badge text-bg-secondary';
         }
 
-        // Lưu tiền tố văn bản nếu sinh viên gõ sửa bằng tay
-        answerBox.addEventListener('input', () => {
-            manualTextPrefix = answerBox.value;
+        // ---- Push to Talk Controls ----
+        function startPtt() {
+            if (isPttActive || btnPtt.disabled) return;
+            isPttActive = true;
+            btnPtt.classList.add('active');
+            pttBtnText.textContent = 'Đang nghe... (Nhả để dừng)';
+            pttIcon.textContent = '🔴';
+
+            // Lưu phần văn bản đã có trước khi bắt đầu đợt nói mới
+            baseText = answerBox.value.trim();
+
+            if (recorder && recorder.state === 'paused') {
+                try { recorder.resume(); } catch (e) {}
+            }
+            startSpeechRecognition(currentSttLocale);
+        }
+
+        function stopPtt() {
+            if (!isPttActive) return;
+            isPttActive = false;
+            btnPtt.classList.remove('active');
+            pttBtnText.textContent = 'Giữ để nói (Push to Talk)';
+            pttIcon.textContent = '🎙️';
+            // Không gán lại baseText ở đây: để tránh bị ghi đè khi onresult cuối cùng của trình duyệt dội về
+            stopSpeechRecognition();
+            micStatus.textContent = 'Micro đang chờ (Bấm giữ nút để nói)';
+            micStatus.className = 'badge text-bg-secondary';
+
+            if (recorder && recorder.state === 'recording') {
+                try { recorder.pause(); } catch (e) {}
+            }
+        }
+
+        // Bấm giữ bằng chuột trái hoặc chạm màn hình
+        btnPtt.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0 && e.pointerType === 'mouse') return;
+            e.preventDefault();
+            startPtt();
+        });
+
+        const cancelPtt = () => {
+            if (isPttActive) stopPtt();
+        };
+
+        btnPtt.addEventListener('pointerup', cancelPtt);
+        btnPtt.addEventListener('pointerleave', cancelPtt);
+        btnPtt.addEventListener('pointercancel', cancelPtt);
+        window.addEventListener('pointerup', cancelPtt);
+
+        // Phím tắt Spacebar (khi không gõ trong ô trả lời)
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && e.target !== answerBox && pttToggle.checked && !btnPtt.disabled) {
+                e.preventDefault();
+                startPtt();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'Space' && e.target !== answerBox && pttToggle.checked) {
+                e.preventDefault();
+                stopPtt();
+            }
+        });
+
+        // Chuyển đổi giữa Push to Talk và Luôn lắng nghe
+        pttToggle.addEventListener('change', () => {
+            if (btnSubmit.disabled) return;
+            if (pttToggle.checked) {
+                stopSpeechRecognition();
+                micStatus.textContent = 'Micro đang chờ (Bấm giữ nút để nói)';
+                micStatus.className = 'badge text-bg-secondary';
+                if (recorder && recorder.state === 'recording') {
+                    try { recorder.pause(); } catch (e) {}
+                }
+            } else {
+                startSpeechRecognition(currentSttLocale);
+                if (recorder && recorder.state === 'paused') {
+                    try { recorder.resume(); } catch (e) {}
+                }
+            }
         });
     </script>
 }

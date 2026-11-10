@@ -94,7 +94,8 @@ public class SchemaTests
         "PK_ExamParticipants", "UQ_ExamParticipants_Student", "CK_ExamParticipants_Status", "FK_ExamParticipants_Sessions",
         "PK_ParticipantQuestions", "FK_ParticipantQuestions_Participants", "FK_ParticipantQuestions_Questions",
         "PK_InterviewTurns", "CK_InterviewTurns_Kind", "FK_InterviewTurns_Participants", "FK_InterviewTurns_Questions",
-        "PK_Voices", "UQ_Voices_Name", "FK_Voices_Accounts"
+        "PK_Voices", "UQ_Voices_Name", "FK_Voices_Accounts",
+        "PK_TurnRecordings", "FK_TurnRecordings_Turns", "DF_TurnRecordings_CreatedAt"
     }.Select(n => new object[] { n });
 
     [SqlTheory]

@@ -19,6 +19,8 @@ public class TestDb
     public List<InterviewTurn> Turns { get; } = new();
     public List<Voice> Voices { get; } = new();
     public List<InterviewTurn> PendingTurns { get; } = new(); // lượt hỏi đã AddTurn nhưng chưa SaveAsync
+    public List<TurnRecording> Recordings { get; } = new();
+    public List<TurnRecording> PendingRecordings { get; } = new(); // ghi âm đã AddRecording nhưng chưa SaveAsync
 
     // Bộ băm GIẢ: để test của người khác không phải chờ TV3 làm xong Pbkdf2PasswordHasher. Hasher thật có test riêng (PasswordHasherTests).
     public IPasswordHasher Hasher { get; } = new FakePasswordHasher();

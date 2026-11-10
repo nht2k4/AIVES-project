@@ -478,4 +478,77 @@ public class InterviewServiceTests
         Assert.Equal(ServiceErrorType.NotFound, (await Service().SpeakAsync(_student.Id, 999)).ErrorType);
         Assert.Equal(ServiceErrorType.Forbidden, (await Service().SpeakAsync(stranger.Id, state.TurnId!.Value)).ErrorType);
     }
+
+    // ---- Ghi âm câu trả lời: sinh viên gửi sau khi nộp, giảng viên phụ trách nghe lại để đối chiếu
+    private static readonly byte[] Clip = { 0x1A, 0x45, 0xDF, 0xA3, 1, 2, 3 };
+
+    [Fact]
+    public async Task Recording_StudentUploadsAfterAnswering_AssignedLecturerAndAdminCanListen()
+    {
+        var state = await StartAsync();
+        var turnId = state.TurnId!.Value;
+        await AnswerAsync(state, "Câu trả lời có ghi âm");
+
+        var saved = await Service().SaveRecordingAsync(_student.Id, turnId, Clip, "audio/webm;codecs=opus");
+
+        Assert.True(saved.Succeeded, saved.Error);
+        var heard = await Service().GetRecordingAsync(_lecturer.Id, turnId);
+        Assert.True(heard.Succeeded);
+        Assert.Equal(("audio/webm;codecs=opus", Clip), (heard.Data!.ContentType, heard.Data.Audio));
+        Assert.True((await Service().GetRecordingAsync(_db.AddAccount(Roles.Admin).Id, turnId)).Succeeded);
+
+        var transcript = (await Service().GetTranscriptAsync(_lecturer.Id, Participant.Id)).Data!;
+        Assert.True(transcript.Turns.Single(t => t.Id == turnId).HasRecording);
+        Assert.False(transcript.Turns.Last().HasRecording);   // lượt mới chưa có ghi âm
+    }
+
+    [Fact]
+    public async Task Recording_OnlyTheCandidate_OnlyAfterAnswering_OnlyOnce()
+    {
+        var state = await StartAsync();
+        var turnId = state.TurnId!.Value;
+        var other = _db.AddAccount(Roles.Student, studentCode: "SE2");
+
+        Assert.Equal(ServiceErrorType.Validation, (await Service().SaveRecordingAsync(_student.Id, turnId, Clip, "audio/webm")).ErrorType); // chưa nộp
+        await AnswerAsync(state, "Trả lời");
+        Assert.Equal(ServiceErrorType.Forbidden, (await Service().SaveRecordingAsync(other.Id, turnId, Clip, "audio/webm")).ErrorType);
+        Assert.Equal(ServiceErrorType.Forbidden, (await Service().SaveRecordingAsync(_lecturer.Id, turnId, Clip, "audio/webm")).ErrorType);
+        Assert.True((await Service().SaveRecordingAsync(_student.Id, turnId, Clip, "audio/webm")).Succeeded);
+        Assert.False((await Service().SaveRecordingAsync(_student.Id, turnId, new byte[] { 9 }, "audio/webm")).Succeeded); // không ghi đè
+
+        Assert.Single(_db.Recordings);
+        Assert.Equal(Clip, _db.Recordings.Single().Audio);
+        Assert.Equal(ServiceErrorType.NotFound, (await Service().SaveRecordingAsync(_student.Id, 999, Clip, "audio/webm")).ErrorType);
+    }
+
+    [Theory]
+    [InlineData("text/plain", 10)]
+    [InlineData(null, 10)]
+    [InlineData("audio/webm", 0)]
+    [InlineData("audio/webm", 10 * 1024 * 1024 + 1)]
+    public async Task Recording_EmptyTooLargeOrNotAudio_IsRejected(string? type, int size)
+    {
+        var state = await StartAsync();
+        await AnswerAsync(state, "Trả lời");
+
+        var result = await Service().SaveRecordingAsync(_student.Id, state.TurnId!.Value, new byte[size], type);
+
+        Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
+        Assert.Empty(_db.Recordings);
+    }
+
+    [Fact]
+    public async Task Recording_StudentsAndStrangersCannotListen_MissingIsNotFound()
+    {
+        var state = await StartAsync();
+        var turnId = state.TurnId!.Value;
+        await AnswerAsync(state, "Trả lời");
+
+        Assert.Equal(ServiceErrorType.NotFound, (await Service().GetRecordingAsync(_lecturer.Id, turnId)).ErrorType); // chưa có ghi âm
+        await Service().SaveRecordingAsync(_student.Id, turnId, Clip, "audio/webm");
+
+        Assert.Equal(ServiceErrorType.Forbidden, (await Service().GetRecordingAsync(_student.Id, turnId)).ErrorType);
+        Assert.Equal(ServiceErrorType.Forbidden, (await Service().GetRecordingAsync(_db.AddAccount(Roles.Lecturer).Id, turnId)).ErrorType);
+        Assert.Equal(ServiceErrorType.NotFound, (await Service().GetRecordingAsync(_lecturer.Id, 999)).ErrorType);
+    }
 }

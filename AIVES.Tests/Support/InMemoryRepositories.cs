@@ -231,6 +231,15 @@ public class InMemoryInterviewRepository : IInterviewRepository
     // Giống EF Core: lượt hỏi mới chỉ "có thật" sau SaveAsync
     public void AddTurn(InterviewTurn turn) => Pending.Add(turn);
 
+    public Task<TurnRecording?> GetRecordingAsync(int turnId) =>
+        Task.FromResult(_db.Recordings.FirstOrDefault(r => r.TurnId == turnId));
+
+    public Task<List<int>> GetRecordedTurnIdsAsync(int participantId) =>
+        Task.FromResult(_db.Recordings.Where(r => _db.Turns.Any(t => t.Id == r.TurnId && t.ParticipantId == participantId)).Select(r => r.TurnId).ToList());
+
+    // Giống EF Core: ghi âm chỉ "có thật" sau SaveAsync
+    public void AddRecording(TurnRecording recording) => _db.PendingRecordings.Add(recording);
+
     public Task SaveAsync()
     {
         foreach (var turn in Pending)
@@ -239,6 +248,8 @@ public class InMemoryInterviewRepository : IInterviewRepository
             _db.Turns.Add(turn);
         }
         Pending.Clear();
+        _db.Recordings.AddRange(_db.PendingRecordings);
+        _db.PendingRecordings.Clear();
         return Task.CompletedTask;
     }
 }

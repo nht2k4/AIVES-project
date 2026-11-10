@@ -40,6 +40,23 @@ public class InterviewController : AppController
         return View(result.Data);
     }
 
+    // GET /Interview/DownloadTranscript?participantId=... (TV5 mini-task): cùng quyền với Transcript, trả file .txt
+    public async Task<IActionResult> DownloadTranscript(int participantId)
+    {
+        var result = await _interviewService.GetTranscriptAsync(CurrentUserId, participantId);
+        if (!result.Succeeded)
+        {
+            return MapFailure(result) ?? BadRequest(result.Error);
+        }
+
+        var transcript = result.Data!;
+        var bytes = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true)
+            .GetPreamble()
+            .Concat(System.Text.Encoding.UTF8.GetBytes(TranscriptText.Build(transcript)))
+            .ToArray();
+        return File(bytes, "text/plain; charset=utf-8", TranscriptText.FileName(transcript));
+    }
+
     // POST /Interview/Start: Bắt đầu hoặc tiếp tục phỏng vấn
     [HttpPost]
     [Authorize(Roles = Roles.Student)]
@@ -90,6 +107,41 @@ public class InterviewController : AppController
         await _hubContext.NotifyAsync(message, LiveTopics.Exam(state.SessionId));
 
         return Json(state);
+    }
+
+    // POST /Interview/UploadRecording: phòng thi gửi ghi âm câu trả lời của lượt vừa nộp (chỉ Sinh viên dự thi)
+    [HttpPost]
+    [Authorize(Roles = Roles.Student)]
+    [ValidateAntiForgeryToken]
+    [RequestSizeLimit(11 * 1024 * 1024)]
+    public async Task<IActionResult> UploadRecording([FromForm] int turnId, IFormFile? audio)
+    {
+        if (audio is null) return BadRequest(new { error = "Thiếu tệp ghi âm." });
+
+        using var buffer = new MemoryStream();
+        await audio.CopyToAsync(buffer);
+        var result = await _interviewService.SaveRecordingAsync(CurrentUserId, turnId, buffer.ToArray(), audio.ContentType);
+        if (result.Succeeded) return NoContent();
+
+        return StatusCode(result.ErrorType switch
+        {
+            ServiceErrorType.NotFound => StatusCodes.Status404NotFound,
+            ServiceErrorType.Forbidden => StatusCodes.Status403Forbidden,
+            _ => StatusCodes.Status400BadRequest
+        }, new { error = result.Error });
+    }
+
+    // GET /Interview/Recording?turnId=...: giảng viên phụ trách môn và Admin nghe lại ghi âm trong trang Biên bản
+    public async Task<IActionResult> Recording(int turnId)
+    {
+        var result = await _interviewService.GetRecordingAsync(CurrentUserId, turnId);
+        if (!result.Succeeded)
+        {
+            return MapFailure(result) ?? BadRequest(result.Error);
+        }
+
+        Response.Headers.CacheControl = "no-store"; // dữ liệu riêng tư: trình duyệt và proxy không lưu lại
+        return File(result.Data!.Audio, result.Data.ContentType, enableRangeProcessing: true);
     }
 
     // POST /Interview/Speak: luồng audio/pcm 48 kHz hoặc 503

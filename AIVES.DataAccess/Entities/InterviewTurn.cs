@@ -29,4 +29,6 @@ public partial class InterviewTurn
     public virtual ExamParticipant Participant { get; set; } = null!;
 
     public virtual Question Question { get; set; } = null!;
+
+    public virtual TurnRecording? TurnRecording { get; set; }
 }

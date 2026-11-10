@@ -17,6 +17,5 @@ publish/
 Thumbs.db
 .DS_Store
 
-# VieNeu-TTS: giữ mã nguồn, bỏ môi trường Python
-VieNeu-TTS/.venv/
-VieNeu-TTS/**/__pycache__/
+# VieNeu-TTS được cài riêng trong thư mục dự án.
+VieNeu-TTS/

@@ -1,0 +1,119 @@
+@* TV5 - Ass3 - việc 5.3: Biên bản phỏng vấn. Action Interview/Transcript do TV6 viết (InterviewController). *@
+@model AIVES.Business.DTOs.TranscriptDto
+@using AIVES.Business.Models
+@{
+    ViewData["Title"] = "Biên bản";
+
+    var statusText = Model.Status switch
+    {
+        ParticipantStatuses.Scheduled => "Chưa thi",
+        ParticipantStatuses.InProgress => "Đang thi",
+        ParticipantStatuses.Completed => "Đã thi",
+        _ => Model.Status
+    };
+    var statusClass = Model.Status switch
+    {
+        ParticipantStatuses.InProgress => "bg-warning text-dark",
+        ParticipantStatuses.Completed => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    var isStudent = User.IsInRole(Roles.Student);
+    var backUrl = isStudent ? "/MyExams" : $"/Exams/Details/{Model.SessionId}";
+    var backText = isStudent ? "Về Bài thi của tôi" : "Về chi tiết phiên thi";
+
+    var mainNo = 0;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+    <div>
+        <h1 class="h3 mb-1">Biên bản phỏng vấn</h1>
+        <div class="text-muted">
+            @Model.SessionTitle · @Model.SubjectCode
+        </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-primary" href="/Interview/DownloadTranscript?participantId=@Model.ParticipantId">Tải biên bản (.txt)</a>
+        <a class="btn btn-outline-secondary" href="@backUrl">&larr; @backText</a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body d-flex flex-wrap gap-4">
+        <div><span class="text-muted">Thí sinh:</span> <strong>@Model.StudentName</strong></div>
+        <div><span class="text-muted">MSSV:</span> <strong>@Model.StudentCode</strong></div>
+        <div><span class="text-muted">Trạng thái:</span> <span class="badge @statusClass">@statusText</span></div>
+        <div><span class="text-muted">Số lượt:</span> <strong>@Model.Turns.Count</strong></div>
+    </div>
+</div>
+
+@if (Model.Turns.Count == 0)
+{
+    <div class="alert alert-info">Thí sinh chưa bắt đầu thi nên chưa có lượt hỏi nào.</div>
+}
+else
+{
+    foreach (var turn in Model.Turns)
+    {
+        var isFollowUp = turn.Kind == TurnKinds.FollowUp;
+        if (!isFollowUp) { mainNo++; }
+
+        <div class="card mb-3 @(isFollowUp ? "ms-4 ms-md-5 border-start border-warning border-3" : "")">
+            <div class="card-header d-flex flex-wrap align-items-center gap-2">
+                @if (isFollowUp)
+                {
+                    <span class="badge bg-warning text-dark">Hỏi xoáy</span>
+                }
+                else
+                {
+                    <span class="badge bg-primary">Câu chính @mainNo</span>
+                }
+                @if (turn.TimedOut)
+                {
+                    <span class="badge bg-danger">Hết giờ</span>
+                }
+                <small class="text-muted ms-auto">Hỏi lúc @turn.AskedAt.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy")</small>
+            </div>
+            <div class="card-body">
+                <p class="fw-semibold mb-2">@turn.Content</p>
+
+                @if (isFollowUp && !string.IsNullOrWhiteSpace(turn.Reason))
+                {
+                    <p class="small text-muted mb-2"><span class="fw-semibold">Lý do hỏi thêm:</span> @turn.Reason</p>
+                }
+
+                <div class="border rounded p-2 bg-light">
+                    <div class="small text-muted mb-1">Câu trả lời</div>
+                    @if (turn.Answer is null)
+                    {
+                        <em class="text-muted">(chưa trả lời)</em>
+                    }
+                    else if (string.IsNullOrWhiteSpace(turn.Answer))
+                    {
+                        <em class="text-muted">(không trả lời)</em>
+                    }
+                    else
+                    {
+                        <div style="white-space: pre-wrap">@turn.Answer</div>
+                    }
+                </div>
+
+                @* Ghi âm để đối chiếu với văn bản STT: chỉ giảng viên phụ trách và Admin (Business kiểm quyền lần nữa khi tải) *@
+                @if (!isStudent)
+                {
+                    <div class="mt-2">
+                        @if (turn.HasRecording)
+                        {
+                            <div class="small text-muted mb-1">Ghi âm câu trả lời</div>
+                            <audio controls preload="none" class="w-100" src="/Interview/Recording?turnId=@turn.Id"></audio>
+                        }
+                        else if (turn.Answer is not null)
+                        {
+                            <span class="small text-muted fst-italic">(không có ghi âm cho lượt này)</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}

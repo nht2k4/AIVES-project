@@ -1,0 +1,101 @@
+@* TV5 - Ass3 - việc 5.2: Ngôn ngữ STT/TTS + khung Chỉnh tay cho phòng thi *@
+@model AIVES.Ass3.MVC.ViewModels.LanguageEditViewModel
+@{
+    ViewData["Title"] = "Đổi ngôn ngữ";
+    var config = Model.Config;
+    var isAdmin = User.IsInRole(Roles.Admin);
+}
+
+@if (isAdmin)
+{
+    <a asp-controller="Subjects" asp-action="Details" asp-route-id="@config.SubjectId" class="small">Quay lại chi tiết môn học</a>
+}
+else
+{
+    <a asp-controller="MySubjects" asp-action="Index" class="small">Quay lại Môn của tôi</a>
+}
+
+<div class="mt-2 mb-4">
+    <h1 class="h3">Đổi ngôn ngữ STT/TTS</h1>
+    <p class="text-muted mb-0">@config.SubjectCode — @config.SubjectName</p>
+</div>
+
+<form method="post" asp-action="Edit" asp-route-subjectId="@config.SubjectId">
+    <div asp-validation-summary="All" class="text-danger mb-3" role="alert"></div>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header">Ngôn ngữ</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="SttLanguage" class="form-label"></label>
+                        <select asp-for="SttLanguage" asp-items="Html.GetEnumSelectList<AppLanguage>()" class="form-select"></select>
+                        <span asp-validation-for="SttLanguage" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="TtsLanguage" class="form-label"></label>
+                        <select asp-for="TtsLanguage" asp-items="Html.GetEnumSelectList<AppLanguage>()" class="form-select"></select>
+                        <span asp-validation-for="TtsLanguage" class="text-danger"></span>
+                    </div>
+                    <p class="small text-muted mb-0">
+                        Giọng đọc: <strong>@(string.IsNullOrEmpty(config.TtsVoice) ? "mặc định" : config.TtsVoice)</strong>
+                        (đổi ở trang <a asp-controller="Voices" asp-action="Index">Giọng đọc</a>).
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header">Chỉnh tay cho phòng thi</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="SttTerms" class="form-label"></label>
+                        <textarea asp-for="SttTerms" class="form-control font-monospace" rows="5"
+                                  placeholder="ra dơ pây => Razor Pages&#10;đi ai => DI"></textarea>
+                        <div class="form-text">
+                            Mỗi dòng một cặp <code>cách nghe sai =&gt; cách viết đúng</code>. Câu trả lời của sinh viên được sửa theo từ điển
+                            trước khi lưu và gửi AI. Để trống để xóa từ điển.
+                        </div>
+                        <span asp-validation-for="SttTerms" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3" style="max-width: 16rem">
+                        <label asp-for="AiTimeoutSeconds" class="form-label"></label>
+                        <input asp-for="AiTimeoutSeconds" type="number" min="2" max="30" class="form-control" />
+                        <div class="form-text">Từ 2 đến 30 giây. Quá thời gian này hệ thống dùng luật dự phòng để giữ nhịp vấn đáp.</div>
+                        <span asp-validation-for="AiTimeoutSeconds" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-check mb-2">
+                        <input asp-for="UseExternalAi" class="form-check-input" />
+                        <label asp-for="UseExternalAi" class="form-check-label"></label>
+                    </div>
+                    <div class="alert alert-light border small mb-0">
+                        <strong>Quyền riêng tư:</strong> câu trả lời được ghi âm và lưu cùng văn bản STT để giảng viên nghe lại, đối chiếu;
+                        chỉ giảng viên phụ trách môn và quản trị viên nghe được, ghi âm xóa cùng phiên thi.
+                        Bỏ chọn ô trên thì câu trả lời không được gửi tới dịch vụ AI bên ngoài (DeepSeek);
+                        câu hỏi xoáy khi đó do luật dự phòng chạy ngay trên máy chủ sinh ra.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mt-4">
+        <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+        <a asp-controller="Exams" asp-action="Questions" asp-route-subjectId="@config.SubjectId" class="btn btn-outline-secondary">Câu hỏi</a>
+    </div>
+</form>
+
+@if (config.UpdatedAt.HasValue)
+{
+    <p class="small text-muted mt-4 mb-0">
+        Lần sửa gần nhất @config.UpdatedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") bởi @(config.UpdatedBy ?? "—").
+    </p>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

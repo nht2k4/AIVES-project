@@ -1,0 +1,161 @@
+@model VoicesViewModel
+@{
+    ViewData["Title"] = "Giọng đọc";
+    var overview = Model.Overview;
+    var selected = Model.SelectedSubject;
+    var isAdmin = User.IsInRole(Roles.Admin);
+}
+
+<h1 class="h3 mb-3">Giọng đọc</h1>
+
+@if (overview.Status.Online)
+{
+    <div class="alert alert-success">
+        VieNeu-TTS đang chạy · @overview.Status.Backend · @(overview.Status.SampleRate / 1000) kHz
+        · @overview.Status.Active / @overview.Status.MaxStreams luồng đang phát
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        VieNeu-TTS chưa chạy. Khởi động dịch vụ từ thư mục VieNeu-TTS bằng
+        <code>uv run python -m apps.openai_speech</code>, rồi tải lại trang.
+    </div>
+}
+
+<p>Giọng mặc định <strong>@overview.DefaultVoice</strong></p>
+<p id="voice-preview-status" class="small text-muted" role="status" aria-live="polite"></p>
+
+@if (overview.Voices.Count == 0)
+{
+    <p class="text-muted">Chưa có giọng đọc để hiển thị.</p>
+}
+else
+{
+    <div class="table-responsive mb-4">
+        <table class="table align-middle">
+            <thead>
+                <tr><th>Giọng</th><th>Mô tả</th><th>Thao tác</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var voice in overview.Voices)
+                {
+                    <tr>
+                        <td>
+                            @voice.Name
+                            @if (voice.Cloned)
+                            {
+                                <span class="badge text-bg-info">Đã clone</span>
+                            }
+                            else if (voice.Featured)
+                            {
+                                <span class="badge text-bg-light">Nổi bật</span>
+                            }
+                        </td>
+                        <td>@voice.Description</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-primary"
+                                    data-preview-url="@Url.Action("Preview", new { name = voice.Name })"
+                                    data-voice-name="@voice.Name" disabled="@(!overview.Status.Online)">
+                                Nghe thử
+                            </button>
+                            @if (isAdmin && voice.Cloned)
+                            {
+                                <form asp-action="Delete" method="post" class="d-inline">
+                                    <input type="hidden" name="name" value="@voice.Name" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<section class="border rounded p-3 mb-4">
+    <h2 class="h5">Gán giọng cho môn học</h2>
+    @if (Model.Subjects.Count == 0)
+    {
+        <p class="text-muted mb-0">Bạn chưa có môn để cấu hình.</p>
+    }
+    else
+    {
+        <form asp-action="Index" method="get" class="d-flex gap-2 align-items-end mb-3">
+            <div>
+                <label for="voice-subject" class="form-label">Môn học</label>
+                <select id="voice-subject" name="subjectId" class="form-select" required>
+                    <option value="">Chọn môn</option>
+                    @foreach (var subject in Model.Subjects)
+                    {
+                        <option value="@subject.Id" selected="@(subject.Id == selected?.SubjectId)">@subject.Code · @subject.Name</option>
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn btn-outline-secondary">Xem giọng đang dùng</button>
+        </form>
+
+        @if (selected is not null)
+        {
+            var currentVoice = selected.TtsVoice;
+            var currentVoiceUnavailable = !string.IsNullOrEmpty(currentVoice)
+                && !overview.Voices.Any(voice => string.Equals(voice.Name, currentVoice, StringComparison.OrdinalIgnoreCase));
+
+            <p>Giọng đang dùng cho <strong>@selected.SubjectCode</strong> là <strong>@(selected.TtsVoice ?? overview.DefaultVoice)</strong>.</p>
+            <form asp-action="Assign" method="post" class="d-flex gap-2 align-items-end">
+                <input type="hidden" name="subjectId" value="@selected.SubjectId" />
+                <div>
+                    <label for="voice-name" class="form-label">Giọng đọc</label>
+                    <select id="voice-name" name="name" class="form-select">
+                        <option value="">Mặc định (@overview.DefaultVoice)</option>
+                        @if (currentVoiceUnavailable)
+                        {
+                            <option value="@currentVoice" selected>@currentVoice (đang dùng, chưa có trong danh sách)</option>
+                        }
+                        @foreach (var voice in overview.Voices)
+                        {
+                            <option value="@voice.Name" selected="@string.Equals(voice.Name, selected.TtsVoice, StringComparison.OrdinalIgnoreCase)">@voice.Name</option>
+                        }
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Lưu giọng đọc</button>
+            </form>
+        }
+    }
+</section>
+
+@if (isAdmin)
+{
+    <section class="border rounded p-3 mb-4">
+        <h2 class="h5">Clone giọng đọc</h2>
+        <p>Dùng mẫu thu rõ tiếng từ 3 đến 8 giây của bạn hoặc của người đã đồng ý.</p>
+        <form asp-action="Clone" method="post" enctype="multipart/form-data">
+            <fieldset disabled="@(!overview.Status.Online)">
+                <div class="mb-3">
+                    <label for="clone-name" class="form-label">Tên giọng</label>
+                    <input id="clone-name" name="name" class="form-control" maxlength="64" required />
+                </div>
+                <div class="mb-3">
+                    <label for="clone-description" class="form-label">Mô tả</label>
+                    <input id="clone-description" name="description" class="form-control" maxlength="64" />
+                </div>
+                <div class="mb-3">
+                    <label for="clone-file" class="form-label">Tệp mẫu, tối đa 20 MB</label>
+                    <input id="clone-file" name="clip" type="file" class="form-control"
+                           accept=".wav,.mp3,.flac,.ogg,.m4a" required />
+                </div>
+                <div class="form-check mb-3">
+                    <input id="clone-denoise" name="denoise" type="checkbox" value="true" class="form-check-input" checked />
+                    <label for="clone-denoise" class="form-check-label">Khử nhiễu</label>
+                </div>
+                <button type="submit" class="btn btn-primary">Clone giọng</button>
+            </fieldset>
+        </form>
+    </section>
+}
+
+@section Scripts {
+    <script src="~/js/pcm-player.js" asp-append-version="true"></script>
+    <script src="~/js/voice-preview.js" asp-append-version="true"></script>
+}

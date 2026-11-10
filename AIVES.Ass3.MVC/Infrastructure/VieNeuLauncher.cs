@@ -1,20 +1,26 @@
+using System.ComponentModel;
 using System.Diagnostics;
+using AIVES.Business.Interfaces;
 using AIVES.Business.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32.SafeHandles;
 
 namespace AIVES.Ass3.MVC.Infrastructure;
 
 public class VieNeuLauncher : IHostedService
 {
     private readonly TtsOptions _options;
+    private readonly ITextToSpeech _tts;
     private readonly ILogger<VieNeuLauncher> _logger;
     private Process? _process;
-    private bool _isShuttingDown;
+    private SafeFileHandle? _job;
+    private volatile bool _isShuttingDown;
 
-    public VieNeuLauncher(TtsOptions options, ILogger<VieNeuLauncher> logger)
+    public VieNeuLauncher(TtsOptions options, ITextToSpeech tts, ILogger<VieNeuLauncher> logger)
     {
         _options = options;
+        _tts = tts;
         _logger = logger;
     }
 
@@ -26,19 +32,21 @@ public class VieNeuLauncher : IHostedService
             return;
         }
 
-        try
+        using var healthDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        healthDeadline.CancelAfter(TimeSpan.FromSeconds(2));
+        var status = await _tts.GetStatusAsync(healthDeadline.Token);
+        if (status.Online)
         {
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
-            var health = await http.GetAsync($"{_options.BaseUrl.TrimEnd('/')}/health", cancellationToken);
-            if (health.IsSuccessStatusCode)
-            {
-                _logger.LogInformation("VieNeu-TTS đang chạy tại {Url}.", _options.BaseUrl);
-                return;
-            }
+            _logger.LogInformation("VieNeu-TTS đang chạy tại {Url}.", _options.BaseUrl);
+            return;
         }
-        catch
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!Uri.TryCreate(_options.BaseUrl, UriKind.Absolute, out var baseUrl)
+            || !baseUrl.IsLoopback || baseUrl.Scheme != Uri.UriSchemeHttp)
         {
-            // Chưa chạy, tiến hành khởi động
+            _logger.LogWarning("Tự khởi động VieNeu-TTS cần URL HTTP trên máy này.");
+            return;
         }
 
         var dir = FindDirectory(_options.ServerPath);
@@ -53,50 +61,80 @@ public class VieNeuLauncher : IHostedService
             var psi = new ProcessStartInfo
             {
                 FileName = "uv",
-                Arguments = "run python -m apps.openai_speech",
+                Arguments = _options.UseGpu
+                    ? "run --extra cuda python -m apps.openai_speech"
+                    : "run python -m apps.openai_speech",
                 WorkingDirectory = dir,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
+            psi.Environment["VIENEU_DEVICE"] = _options.UseGpu ? "cuda" : "cpu";
+            psi.Environment["HOST"] = baseUrl.Host.Trim('[', ']');
+            psi.Environment["PORT"] = baseUrl.Port.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-            _process = new Process { StartInfo = psi, EnableRaisingEvents = true };
-            _process.Exited += (s, e) =>
+            var process = new Process { StartInfo = psi };
+            _process = process;
+            string? lastError = null;
+            process.ErrorDataReceived += (_, e) =>
             {
+                if (!string.IsNullOrWhiteSpace(e.Data)) lastError = e.Data;
+            };
+            process.Exited += (_, _) =>
+            {
+                if (_isShuttingDown) return;
+                process.WaitForExit();
                 if (!_isShuttingDown)
-                {
-                    _logger.LogWarning("VieNeu-TTS đã dừng (mã {ExitCode}).", _process?.ExitCode);
-                }
+                    _logger.LogWarning("VieNeu-TTS đã dừng (mã {ExitCode}). {LastError}", process.ExitCode, lastError);
             };
 
-            _process.Start();
-            _process.BeginOutputReadLine();
-            _process.BeginErrorReadLine();
+            process.Start();
+            if (OperatingSystem.IsWindows())
+            {
+                try
+                {
+                    _job = ChildProcessJob.Attach(process);
+                }
+                catch (Win32Exception ex)
+                {
+                    _logger.LogWarning(ex, "Không gắn được VieNeu-TTS vào Windows Job Object.");
+                }
+            }
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            process.EnableRaisingEvents = true;
             _logger.LogInformation("Đã khởi động VieNeu-TTS tại {Dir}.", dir);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
         {
             _logger.LogWarning(ex, "Không thể khởi động VieNeu-TTS bằng uv run. Hãy kiểm tra cài đặt uv.");
         }
     }
 
-    public Task StopAsync(CancellationToken cancellationToken)
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
         _isShuttingDown = true;
+        _job?.Dispose();
+        var process = _process;
+        if (process is null) return;
+
         try
         {
-            if (_process != null && !_process.HasExited)
+            if (!process.HasExited)
             {
-                _process.Kill(true);
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync(cancellationToken);
             }
         }
-        catch
+        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception or OperationCanceledException)
         {
-            // Bỏ qua lỗi khi tắt process
+            _logger.LogDebug(ex, "Không thể chờ VieNeu-TTS dừng.");
         }
-
-        return Task.CompletedTask;
+        finally
+        {
+            process.Dispose();
+        }
     }
 
     private static string? FindDirectory(string folderName)
