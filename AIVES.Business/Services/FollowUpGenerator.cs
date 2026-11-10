@@ -55,8 +55,8 @@ public class FollowUpGenerator : IFollowUpGenerator
         var isEnglish = context.Locale.StartsWith("en", StringComparison.OrdinalIgnoreCase);
 
         var systemPrompt = isEnglish
-            ? "You are an oral exam interviewer. Analyze the student's answer based on the main question and expected key points. Decide whether to ask a follow-up question. The follow-up must be ONE short question (at most 25 words, no numbered list) and the reason one short sentence, so it can be read aloud quickly. Respond strictly with JSON format: {\"ask\": boolean, \"question\": string, \"reason\": string}."
-            : "Bạn là giám khảo phỏng vấn thi vấn đáp. Hãy phân tích câu trả lời của thí sinh dựa vào câu hỏi chính và các ý chính mong đợi. Quyết định xem có cần hỏi xoáy (làm rõ thêm) không. Câu hỏi xoáy phải là MỘT câu ngắn (tối đa khoảng 25 từ, không liệt kê nhiều ý) và lý do là một câu ngắn, để đọc thành tiếng nhanh, giữ nhịp vấn đáp. Trả về đúng định dạng JSON: {\"ask\": boolean, \"question\": string, \"reason\": string}.";
+            ? "You are an oral exam interviewer. Analyze the student's answer based on the main question and expected key points. Decide whether to ask a follow-up question. The follow-up must be ONE short question (at most 25 words, no numbered list) directly focusing on the technical mechanism or practical application. NEVER say 'you have not mentioned...' or 'you missed...'. Ask naturally and professionally. Respond strictly with JSON format: {\"ask\": boolean, \"question\": string, \"reason\": string}."
+            : "Bạn là giám khảo phỏng vấn thi vấn đáp. Hãy phân tích câu trả lời của thí sinh dựa vào câu hỏi chính và các ý chính. Nếu cần hỏi xoáy, hãy đặt MỘT câu hỏi ngắn (tối đa khoảng 25 từ, không liệt kê) xoáy thẳng vào bản chất kỹ thuật, cơ chế hoạt động hoặc ứng dụng thực tế. TUYỆT ĐỐI KHÔNG bắt bẻ kiểu 'sao bạn chưa nhắc đến...' hay 'bạn còn thiếu...'. Hãy hỏi tự nhiên, chuyên nghiệp như một giám khảo thực thụ. Trả về đúng định dạng JSON: {\"ask\": boolean, \"question\": string, \"reason\": string}.";
 
         var exchangesText = string.Join("\n", context.Exchanges.Select((ex, idx) =>
             $"Lượt {idx + 1}:\n- Câu hỏi: {ex.Question}\n- Trả lời: {ex.Answer}"));
@@ -127,8 +127,8 @@ public class FollowUpGenerator : IFollowUpGenerator
         if (wordCount < 12)
         {
             var question = isEnglish
-                ? "Could you explain this point more clearly?"
-                : "Bạn có thể giải thích rõ hơn ý này được không?";
+                ? "Could you explain your answer in more detail?"
+                : "Bạn có thể phân tích chi tiết và cụ thể hơn về nội dung bạn vừa trả lời?";
             var reason = isEnglish
                 ? "Answer is too brief."
                 : "Câu trả lời quá ngắn.";
@@ -179,11 +179,11 @@ public class FollowUpGenerator : IFollowUpGenerator
             if (!normalizedAnswers.Contains(normalizedPoint))
             {
                 var question = isEnglish
-                    ? $"You haven't mentioned \"{point}\". Could you elaborate on that?"
-                    : $"Bạn chưa nhắc đến \"{point}\". Bạn làm rõ được không?";
+                    ? $"In this context, could you explain the role and mechanism of \"{point}\"?"
+                    : $"Liên quan đến nội dung này, bạn hãy làm rõ vai trò và cơ chế của \"{point}\"?";
                 var reason = isEnglish
-                    ? $"Missing key point: \"{point}\"."
-                    : $"Chưa nhắc đến ý chính: \"{point}\".";
+                    ? $"Need deeper explanation on \"{point}\"."
+                    : $"Cần đào sâu vào cơ chế của \"{point}\".";
 
                 return new FollowUpDecision(true, question, reason);
             }
